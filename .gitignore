@@ -1,0 +1,8 @@
+*~
+*.swp
+*.orig
+*.bak
+*.o
+*.so
+
+/cpdup
