@@ -23,7 +23,11 @@
 #include <fnmatch.h>
 #include <assert.h>
 #ifndef NOMD5
-#include <md5.h>
+#  ifdef __linux
+#    include <openssl/md5.h>
+#  else
+#    include <md5.h>
+#  endif
 #endif
 
 /* Solaris needs <strings.h> for bzero(), bcopy() and bcmp(). */
@@ -34,10 +38,14 @@
 #endif
 
 #ifdef __linux
+#include "compat_linux.h"
+#include "compat_md5.h"
+
 #define __printflike(a,b)
 #define __printf0like(a,b)
 #define __aligned(x)
 #define __unused
+#define __dead2
 #endif
 
 void logstd(const char *ctl, ...) __printflike(1, 2);

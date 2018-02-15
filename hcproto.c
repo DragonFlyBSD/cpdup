@@ -83,7 +83,6 @@ static struct HCDesc HCDispatchTable[] = {
 };
 
 static int chown_warning;
-static int chflags_warning;
 
 /*
  * If not running as root generate a silent warning and return no error.

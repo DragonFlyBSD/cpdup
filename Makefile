@@ -1,25 +1,35 @@
+#
+# CPDUP
+#
+
+CC?=	gcc
+CFLAGS?=	-O -pipe -D_GNU_SOURCE -std=gnu99 -Wall
+CFLAGS+=	$(shell pkg-config --cflags openssl)
+LIBS?=	$(shell pkg-config --libs openssl)
+
 PROG=	cpdup
-SRCS=	cpdup.c hcproto.c hclink.c misc.c fsmid.c
+SRCS=	cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
+ifeq ($(shell uname -s),Linux)
+	SRCS+=	compat_linux.c compat_md5.c
+endif
+OBJS=	$(SRCS:.c=.o)
 
-.if defined(.FreeBSD)
-CFLAGS += -D_ST_FLAGS_PRESENT_=1
-WARNS?=	6
-.endif
+all: ${PROG}
 
-.if defined(BOOTSTRAPPING)
-# For boostrapping buildworld the md5 functionality is not needed
-CFLAGS+=-DNOMD5
-.else
-.if !defined(NOMD5)
-SRCS+=	md5.c
-.endif
+$(PROG): $(OBJS)
+	$(CC) $(CFLAGS) $(LIBS) $(OBJS) -o $@
 
-# XXX sys/md5.h shim errata for bootstrap REMOVE_OPENSSL_FILES
-CFLAGS+= -I${_SHLIBDIRPREFIX}/usr/include/priv
+clean:
+	rm -f $(PROG) $(OBJS)
 
-LDADD+= -lmd
-DPADD+= ${LIBMD}
-.endif
+# Dependencies
+cpdup.o: cpdup.c cpdup.h hclink.h hcproto.h
+hcproto.o: hcproto.c cpdup.h hclink.h hcproto.h
+hclink.o: hclink.c cpdup.h hclink.h hcproto.h
+misc.o: misc.c cpdup.h
+fsmid.o: fsmid.c cpdup.h
+md5.o: md5.c cpdup.h
 
-.include <bsd.prog.mk>
-
+# One liner to get the value of any makefile variable
+# Credit: http://blog.jgc.org/2015/04/the-one-line-you-should-add-to-every.html
+print-%: ; @echo $*=$($*)
