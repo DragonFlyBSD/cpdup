@@ -1,9 +1,8 @@
-The DragonFly Copyright
+The 3-Clause BSD License
 
-(c) Copyright 1997-2010 by Matthew Dillon, Dima Ruban, and Oliver Fromme.
+SPDX short identifier: BSD-3-Clause
 
-Permission to use and distribute based on the DragonFly copyright.
-Supplied as-is, USE WITH CAUTION.
+Copyright (c) 1997-2010 by Matthew Dillon, Dima Ruban, and Oliver Fromme.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
