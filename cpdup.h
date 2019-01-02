@@ -25,7 +25,7 @@
 #include <assert.h>
 
 #ifndef NOMD5
-#  ifdef __linux
+#  ifdef __linux__
 #    include <openssl/md5.h>
 #  else
 #    include <md5.h>
@@ -36,7 +36,7 @@
 #  include "compat_sun.h"
 #endif
 
-#ifdef __linux
+#ifdef __linux__
 #  include "compat_linux.h"
 #  include "compat_md5.h"
 
@@ -45,7 +45,7 @@
 #  define __aligned(x)
 #  define __unused __attribute__((unused))
 #  define __dead2 __attribute__((noreturn))
-#endif
+#endif  /* __linux__ */
 
 
 void logstd(const char *ctl, ...) __printflike(1, 2);
