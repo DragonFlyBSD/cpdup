@@ -32,10 +32,6 @@
 #  endif
 #endif
 
-#ifdef __sun
-#  include "compat_sun.h"
-#endif
-
 #ifdef __linux__
 #  include "compat_linux.h"
 #  include "compat_md5.h"
