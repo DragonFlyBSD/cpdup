@@ -12,7 +12,8 @@ SRCS+=		compat_linux.c compat_md5.c
 endif
 OBJS=		$(SRCS:.c=.o)
 
-CFLAGS?=	-O -pipe -D_GNU_SOURCE -std=gnu99 -Wall -Wextra
+CFLAGS?=	-O -Wall -Wextra
+CFLAGS+=	-std=gnu99 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS+=	$(shell pkg-config --cflags openssl)
 LIBS?=		$(shell pkg-config --libs openssl)
 
