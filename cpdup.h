@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <unistd.h>
 #include <utime.h>
@@ -22,6 +23,7 @@
 #include <pwd.h>
 #include <fnmatch.h>
 #include <assert.h>
+
 #ifndef NOMD5
 #  ifdef __linux
 #    include <openssl/md5.h>
@@ -30,23 +32,21 @@
 #  endif
 #endif
 
-/* Solaris needs <strings.h> for bzero(), bcopy() and bcmp(). */
-#include <strings.h>
-
 #ifdef __sun
-#include "compat_sun.h"
+#  include "compat_sun.h"
 #endif
 
 #ifdef __linux
-#include "compat_linux.h"
-#include "compat_md5.h"
+#  include "compat_linux.h"
+#  include "compat_md5.h"
 
-#define __printflike(a,b)
-#define __printf0like(a,b)
-#define __aligned(x)
-#define __unused __attribute__((unused))
-#define __dead2 __attribute__((noreturn))
+#  define __printflike(a,b)
+#  define __printf0like(a,b)
+#  define __aligned(x)
+#  define __unused __attribute__((unused))
+#  define __dead2 __attribute__((noreturn))
 #endif
+
 
 void logstd(const char *ctl, ...) __printflike(1, 2);
 void logerr(const char *ctl, ...) __printflike(1, 2);
