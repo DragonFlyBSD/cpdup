@@ -44,8 +44,8 @@
 #define __printflike(a,b)
 #define __printf0like(a,b)
 #define __aligned(x)
-#define __unused
-#define __dead2
+#define __unused __attribute__((unused))
+#define __dead2 __attribute__((noreturn))
 #endif
 
 void logstd(const char *ctl, ...) __printflike(1, 2);

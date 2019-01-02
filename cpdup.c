@@ -1720,7 +1720,7 @@ YesNo(const char *path)
  */
 
 static int
-xrename(const char *src, const char *dst, u_long flags)
+xrename(const char *src, const char *dst, u_long flags __unused)
 {
     int r;
 
@@ -1735,7 +1735,7 @@ xrename(const char *src, const char *dst, u_long flags)
 }
 
 static int
-xlink(const char *src, const char *dst, u_long flags)
+xlink(const char *src, const char *dst, u_long flags __unused)
 {
     int r;
 #ifdef _ST_FLAGS_PRESENT_
