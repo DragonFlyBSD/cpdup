@@ -5,11 +5,8 @@
 #
 
 PROG=		cpdup
-OS=		$(shell uname -s)
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
-ifeq ($(OS),Linux)
 SRCS+=		compat_linux.c compat_md5.c
-endif
 OBJS=		$(SRCS:.c=.o)
 
 CFLAGS?=	-O -Wall -Wextra
@@ -32,6 +29,3 @@ hclink.o: hclink.c cpdup.h hclink.h hcproto.h
 misc.o: misc.c cpdup.h
 fsmid.o: fsmid.c cpdup.h
 md5.o: md5.c cpdup.h
-
-
-print-%: ;  @echo $*=$($*)
