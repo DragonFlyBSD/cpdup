@@ -25,23 +25,13 @@
 #include <assert.h>
 
 #ifndef NOMD5
-#  ifdef __linux__
-#    include <openssl/md5.h>
-#  else
-#    include <md5.h>
-#  endif
+#  include <md5.h>
 #endif
 
 #ifdef __linux__
-#  include "compat_linux.h"
-#  include "compat_md5.h"
-
-#  define __printflike(a,b)
 #  define __printf0like(a,b)
-#  define __aligned(x)
 #  define __unused __attribute__((unused))
-#  define __dead2 __attribute__((noreturn))
-#endif  /* __linux__ */
+#endif
 
 
 void logstd(const char *ctl, ...) __printflike(1, 2);

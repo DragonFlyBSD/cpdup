@@ -1,18 +1,20 @@
 #
 # cpdup makefile for GNU/Linux
 #
-# (requires openssl and libssl-dev)
+# dependencies:
+#   - libbsd-dev
+#   - libmd-dev
+#   - libssl-dev
 #
 
 PROG=		cpdup
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
-SRCS+=		compat_linux.c compat_md5.c
 OBJS=		$(SRCS:.c=.o)
 
 CFLAGS?=	-O -Wall -Wextra
 CFLAGS+=	-std=gnu99 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS+=	$(shell pkg-config --cflags openssl)
-LIBS?=		$(shell pkg-config --libs openssl)
+CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay libmd openssl)
+LIBS?=		$(shell pkg-config --libs libbsd-overlay libmd openssl)
 
 all: $(PROG)
 
