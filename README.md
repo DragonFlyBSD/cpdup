@@ -1,9 +1,9 @@
 CPDUP -- Filesystem Mirroring Utility
 =====================================
 
-This repository hosts the **`cpdup`** utility for Linux operating system
+This repository hosts the **`cpdup`** utility for the Linux operating system
 ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
-operating system developed under The DragonFly Project.
+operating system.
 
 The upstream source can be found at:
 [DragonFlyBSD: `bin/cpdup`](https://gitweb.dragonflybsd.org/dragonfly.git/tree/HEAD:/bin/cpdup)
@@ -27,3 +27,6 @@ significantly improved by Oliver Fromme.
 The `cpdup` utility is distributed under [The 3-Clause BSD License](LICENSE).
 
 Manual page: [`cpdup(1)`](https://www.dragonflybsd.org/cgi/web-man?command=cpdup&section=1)
+
+Build requirements:
+`libbsd-dev`, `libmd-dev`, `libssl-dev`, `pkg-config`
