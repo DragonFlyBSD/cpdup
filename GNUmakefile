@@ -11,10 +11,15 @@ PROG=		cpdup
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
 OBJS=		$(SRCS:.c=.o)
 
-CFLAGS?=	-O -Wall -Wextra
-CFLAGS+=	-std=gnu99 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS?=	-O -std=c99 -pedantic -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS+=	-Wall -Wextra \
+		-Wduplicated-cond -Wduplicated-branches -Wlogical-op \
+		-Wrestrict -Wnull-dereference -Wshadow -Wformat=2 \
+		-Wwrite-strings -Wcast-qual -Wcast-align
+#CFLAGS+=	-Wconversion
+
 CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay libmd openssl)
-LIBS?=		$(shell pkg-config --libs libbsd-overlay libmd openssl)
+LIBS?=		$(shell pkg-config --libs   libbsd-overlay libmd openssl)
 
 all: $(PROG)
 
