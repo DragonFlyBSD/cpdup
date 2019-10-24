@@ -24,10 +24,6 @@
 #include <fnmatch.h>
 #include <assert.h>
 
-#ifndef NOMD5
-#  include <md5.h>
-#endif
-
 #ifdef __linux__
 #  define __printf0like(a,b)
 #  define __unused __attribute__((unused))

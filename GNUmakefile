@@ -1,12 +1,3 @@
-#
-# cpdup makefile for GNU/Linux
-#
-# dependencies:
-#   - libbsd-dev
-#   - libmd-dev
-#   - libssl-dev
-#
-
 PROG=		cpdup
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
 OBJS=		$(SRCS:.c=.o)
@@ -18,8 +9,8 @@ CFLAGS+=	-Wall -Wextra \
 		-Wwrite-strings -Wcast-qual -Wcast-align
 #CFLAGS+=	-Wconversion
 
-CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay libmd openssl)
-LIBS?=		$(shell pkg-config --libs   libbsd-overlay libmd openssl)
+CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay openssl)
+LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
 all: $(PROG)
 
