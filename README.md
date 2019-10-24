@@ -18,15 +18,19 @@ and destination files' sizes and mtimes match).  `cpdup` does not cross
 mount points in either the source or the destination.  As a safety
 measure, `cpdup` refuses to replace a destination directory with a file.
 
-The `cpdup` command was originally created to update servers at
+The `cpdup` utility was originally created to update servers at
 BEST Internet circa 1997 and was placed under the FreeBSD copyright for
 inclusion in the ports area in 1999.
-The program was written by Matthew Dillon, Dima Ruban, and later
+This program was written by Matthew Dillon, Dima Ruban, and later
 significantly improved by Oliver Fromme.
 
 The `cpdup` utility is distributed under [The 3-Clause BSD License](LICENSE).
 
 Manual page: [`cpdup(1)`](https://www.dragonflybsd.org/cgi/web-man?command=cpdup&section=1)
 
-Build requirements:
-`libbsd-dev`, `libmd-dev`, `libssl-dev`, `pkg-config`
+Dependencies:
+* Arch: `libbsd`, `openssl`, `pkgconf`
+* CentOS: `libbsd-devel`, `openssl-devel`, `pkgconfig`
+* Debian: `libbsd-dev`, `libssl-dev`, `pkg-config`
+
+Build: just execute `make`
