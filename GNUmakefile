@@ -1,4 +1,5 @@
 PROG=		cpdup
+MAN=		cpdup.1
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
 OBJS=		$(SRCS:.c=.o)
 
@@ -12,13 +13,28 @@ CFLAGS+=	-Wall -Wextra \
 CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay openssl)
 LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
-all: $(PROG)
+PREFIX?=	/usr/local
+
+all: $(PROG) man
 
 $(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
+man: $(MAN).gz
+
+%.gz: %
+	gzip -9c $< > $@
+
+install:
+	[ -d "$(PREFIX)/bin" ] || mkdir -p $(PREFIX)/bin
+	install -s -m 0755 $(PROG) $(PREFIX)/bin/
+	[ -d "$(PREFIX)/man/man1" ] || mkdir -p $(PREFIX)/man/man1
+	install -m 0644 $(MAN).gz $(PREFIX)/man/man1/
+
 clean:
-	rm -f $(PROG) $(OBJS)
+	rm -f $(PROG) $(OBJS) $(MAN).gz
+
+.PHONY: all man install clean
 
 # Dependencies
 cpdup.o: cpdup.c cpdup.h hclink.h hcproto.h

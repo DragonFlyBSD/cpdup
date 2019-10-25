@@ -4,5 +4,6 @@
 *.bak
 *.o
 *.so
+*.gz
 
 /cpdup
