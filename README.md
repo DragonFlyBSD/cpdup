@@ -1,6 +1,8 @@
 CPDUP -- Filesystem Mirroring Utility
 =====================================
 
+Introduction
+------------
 This repository hosts the **`cpdup`** utility for the Linux operating system
 ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
 operating system.
@@ -28,9 +30,23 @@ The `cpdup` utility is distributed under [The 3-Clause BSD License](LICENSE).
 
 Manual page: [`cpdup(1)`](https://www.dragonflybsd.org/cgi/web-man?command=cpdup&section=1)
 
-Dependencies:
-* Arch: `libbsd`, `openssl`, `pkgconf`
-* CentOS: `libbsd-devel`, `openssl-devel`, `pkgconfig`
-* Debian: `libbsd-dev`, `libssl-dev`, `pkg-config`
 
-Build: just execute `make`
+Build & Installation
+--------------------
+1.  Install dependencies:
+
+    * `make`
+    * `gcc`
+    * `pkg-config`
+    * `libbsd-dev`
+    * `libssl-dev` (OpenSSL/LibreSSL)
+
+    Arch Linux: `pacman -S pkgconf libbsd openssl`
+
+    CentOS: `yum install pkgconfig libbsd-devel openssl-devel`
+
+    Debian: `apt install pkg-config libbsd-dev libssl-dev`
+
+2.  Build: `make`
+
+3.  Install: `sudo make install [PREFIX=/usr/local]`
