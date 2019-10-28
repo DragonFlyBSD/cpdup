@@ -4,10 +4,10 @@ SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
 OBJS=		$(SRCS:.c=.o)
 
 CFLAGS?=	-O -std=c99 -pedantic -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS+=	-Wall -Wextra \
-		-Wduplicated-cond -Wduplicated-branches -Wlogical-op \
-		-Wrestrict -Wnull-dereference -Wshadow -Wformat=2 \
+CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
 		-Wwrite-strings -Wcast-qual -Wcast-align
+#CFLAGS+=	-Wduplicated-cond -Wduplicated-branches \
+		-Wrestrict -Wnull-dereference \
 #CFLAGS+=	-Wconversion
 
 CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay openssl)
