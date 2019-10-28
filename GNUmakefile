@@ -3,7 +3,8 @@ MAN=		cpdup.1
 SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
 OBJS=		$(SRCS:.c=.o)
 
-CFLAGS?=	-O -std=c99 -pedantic -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=		-O -pipe -std=c99 -pedantic \
+		-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
 		-Wwrite-strings -Wcast-qual -Wcast-align
 #CFLAGS+=	-Wduplicated-cond -Wduplicated-branches \
@@ -15,6 +16,7 @@ LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
 PREFIX?=	/usr/local
 RPMBUILD_DIR?=	/tmp/cpdup-rpmbuild
+ARCHBUILD_DIR?=	/tmp/cpdup-archbuild
 
 all: $(PROG)
 
@@ -35,6 +37,15 @@ rpm:
 	cp $(RPMBUILD_DIR)/RPMS/$(shell uname -m)/cpdup-*.rpm .
 	rm -rf $(RPMBUILD_DIR)
 	@echo "Install with: 'sudo rpm -ivh $(shell ls cpdup-*.rpm)'"
+
+archpkg:
+	mkdir -p $(ARCHBUILD_DIR)/src
+	cp linux/PKGBUILD $(ARCHBUILD_DIR)/
+	cp -pr * $(ARCHBUILD_DIR)/src
+	( cd $(ARCHBUILD_DIR) && makepkg )
+	cp $(ARCHBUILD_DIR)/cpdup-*.pkg.* .
+	rm -rf $(ARCHBUILD_DIR)
+	@echo "Install with: 'sudo pacman -U $(shell ls cpdup-*.pkg.*)'"
 
 clean:
 	rm -f $(PROG) $(OBJS)

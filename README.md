@@ -51,6 +51,11 @@ Build & Installation
 
 3.  Install: `sudo make install [PREFIX=/usr/local]`
 
+**Arch Linux**:
+
+    $ make archpkg
+    $ sudo pacman -U cpdup-*.pkg.*
+
 **CentOS**:
 
     $ make rpm
