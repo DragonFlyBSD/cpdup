@@ -14,6 +14,7 @@ CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay openssl)
 LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
 PREFIX?=	/usr/local
+RPMBUILD_DIR?=	/tmp/cpdup-rpmbuild
 
 all: $(PROG)
 
@@ -24,6 +25,16 @@ install:
 	install -s -Dm 0755 $(PROG) $(PREFIX)/bin/$(PROG)
 	install -Dm 0644 $(MAN) $(PREFIX)/man/man1/$(MAN)
 	gzip -9 $(PREFIX)/man/man1/$(MAN)
+
+rpm:
+	mkdir $(RPMBUILD_DIR)
+	rpmbuild -bb -v \
+		--define="_sourcedir $(PWD)" \
+		--define="_topdir $(RPMBUILD_DIR)" \
+		linux/cpdup.spec
+	cp $(RPMBUILD_DIR)/RPMS/$(shell uname -m)/cpdup-*.rpm .
+	rm -rf $(RPMBUILD_DIR)
+	@echo "Install with: 'sudo rpm -ivh $(shell ls cpdup-*.rpm)'"
 
 clean:
 	rm -f $(PROG) $(OBJS)

@@ -50,3 +50,8 @@ Build & Installation
 2.  Build: `make`
 
 3.  Install: `sudo make install [PREFIX=/usr/local]`
+
+**CentOS**:
+
+    $ make rpm
+    $ sudo rpm -ivh cpdup-*.rpm
