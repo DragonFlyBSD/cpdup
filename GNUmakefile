@@ -15,26 +15,20 @@ LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
 PREFIX?=	/usr/local
 
-all: $(PROG) man
+all: $(PROG)
 
 $(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
-man: $(MAN).gz
-
-%.gz: %
-	gzip -9c $< > $@
-
 install:
-	[ -d "$(PREFIX)/bin" ] || mkdir -p $(PREFIX)/bin
-	install -s -m 0755 $(PROG) $(PREFIX)/bin/
-	[ -d "$(PREFIX)/man/man1" ] || mkdir -p $(PREFIX)/man/man1
-	install -m 0644 $(MAN).gz $(PREFIX)/man/man1/
+	install -s -Dm 0755 $(PROG) $(PREFIX)/bin/$(PROG)
+	install -Dm 0644 $(MAN) $(PREFIX)/man/man1/$(MAN)
+	gzip -9 $(PREFIX)/man/man1/$(MAN)
 
 clean:
-	rm -f $(PROG) $(OBJS) $(MAN).gz
+	rm -f $(PROG) $(OBJS)
 
-.PHONY: all man install clean
+.PHONY: all install clean
 
 # Dependencies
 cpdup.o: cpdup.c cpdup.h hclink.h hcproto.h
