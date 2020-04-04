@@ -35,10 +35,10 @@ Build & Installation
 --------------------
 1.  Install dependencies:
 
-    * `make`
+    * `make` (GNU make)
     * `gcc`
     * `pkg-config`
-    * `libbsd-dev`
+    * `libbsd-dev` (Required on Linux)
     * `libssl-dev` (OpenSSL/LibreSSL)
 
     Arch Linux: `pacman -S pkgconf libbsd openssl`
@@ -46,6 +46,8 @@ Build & Installation
     CentOS: `yum install pkgconfig libbsd-devel openssl-devel`
 
     Debian: `apt install pkg-config libbsd-dev libssl-dev`
+
+    DragonFly BSD / FreeBSD: `pkg install gmake pkgconf libressl`
 
 2.  Build: `make`
 
