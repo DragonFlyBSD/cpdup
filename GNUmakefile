@@ -15,8 +15,11 @@ CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay openssl)
 LIBS?=		$(shell pkg-config --libs   libbsd-overlay openssl)
 
 PREFIX?=	/usr/local
-RPMBUILD_DIR?=	/tmp/cpdup-rpmbuild
-ARCHBUILD_DIR?=	/tmp/cpdup-archbuild
+MAN_DIR?=	$(PREFIX)/share/man
+
+TMPDIR?=	/tmp
+RPMBUILD_DIR?=	$(TMPDIR)/cpdup-rpmbuild
+ARCHBUILD_DIR?=	$(TMPDIR)/cpdup-archbuild
 
 all: $(PROG)
 
@@ -25,32 +28,32 @@ $(PROG): $(OBJS)
 
 install:
 	install -s -Dm 0755 $(PROG) $(PREFIX)/bin/$(PROG)
-	install -Dm 0644 $(MAN) $(PREFIX)/man/man1/$(MAN)
-	gzip -9 $(PREFIX)/man/man1/$(MAN)
+	install -Dm 0644 $(MAN) $(MAN_DIR)/man1/$(MAN)
+	gzip -9 $(MAN_DIR)/man1/$(MAN)
 
 rpm:
-	mkdir $(RPMBUILD_DIR)
+	mkdir -p $(RPMBUILD_DIR)
 	rpmbuild -bb -v \
 		--define="_sourcedir $(PWD)" \
 		--define="_topdir $(RPMBUILD_DIR)" \
-		linux/cpdup.spec
-	cp $(RPMBUILD_DIR)/RPMS/$(shell uname -m)/cpdup-*.rpm .
+		linux/$(PROG).spec
+	cp $(RPMBUILD_DIR)/RPMS/$(shell uname -m)/$(PROG)-*.rpm .
 	rm -rf $(RPMBUILD_DIR)
-	@echo "Install with: 'sudo rpm -ivh $(shell ls cpdup-*.rpm)'"
+	@echo "Install with: 'sudo rpm -ivh $(shell ls $(PROG)-*.rpm)'"
 
 archpkg:
 	mkdir -p $(ARCHBUILD_DIR)/src
 	cp linux/PKGBUILD $(ARCHBUILD_DIR)/
 	cp -pr * $(ARCHBUILD_DIR)/src
 	( cd $(ARCHBUILD_DIR) && makepkg )
-	cp $(ARCHBUILD_DIR)/cpdup-*.pkg.* .
+	cp $(ARCHBUILD_DIR)/$(PROG)-*.pkg.* .
 	rm -rf $(ARCHBUILD_DIR)
-	@echo "Install with: 'sudo pacman -U $(shell ls cpdup-*.pkg.*)'"
+	@echo "Install with: 'sudo pacman -U $(shell ls $(PROG)-*.pkg.*)'"
 
 clean:
 	rm -f $(PROG) $(OBJS)
 
-.PHONY: all install clean
+.PHONY: all install clean rpm archpkg
 
 # Dependencies
 cpdup.o: cpdup.c cpdup.h hclink.h hcproto.h
