@@ -24,6 +24,9 @@
 #include <fnmatch.h>
 #include <assert.h>
 
+#define VERSION	"1.20"
+#define AUTHORS	"Matt Dillon, Dima Ruban, & Oliver Fromme"
+
 #ifdef __linux__
 #  define __printf0like(a,b)
 #  define __unused __attribute__((unused))
