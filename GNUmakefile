@@ -26,8 +26,8 @@ PREFIX?=	/usr/local
 MAN_DIR?=	$(PREFIX)/share/man
 
 TMPDIR?=	/tmp
-RPMBUILD_DIR?=	$(TMPDIR)/cpdup-rpmbuild
-ARCHBUILD_DIR?=	$(TMPDIR)/cpdup-archbuild
+RPMBUILD_DIR?=	$(TMPDIR)/$(PROG)-rpmbuild
+ARCHBUILD_DIR?=	$(TMPDIR)/$(PROG)-archbuild
 
 all: $(PROG)
 
@@ -45,18 +45,21 @@ rpm:
 		--define="_sourcedir $(PWD)" \
 		--define="_topdir $(RPMBUILD_DIR)" \
 		linux/$(PROG).spec
-	cp $(RPMBUILD_DIR)/RPMS/$(shell uname -m)/$(PROG)-*.rpm .
-	rm -rf $(RPMBUILD_DIR)
-	@echo "Install with: 'sudo rpm -ivh $(shell ls $(PROG)-*.rpm)'"
+	@arch=`uname -m` ; \
+		pkg=`( cd $(RPMBUILD_DIR)/RPMS/$${arch}; ls $(PROG)-*.rpm )` ; \
+		cp -v $(RPMBUILD_DIR)/RPMS/$${arch}/$${pkg} . ; \
+		rm -rf $(RPMBUILD_DIR) ; \
+		@echo "Install with: 'sudo rpm -ivh $${pkg}'"
 
 archpkg:
 	mkdir -p $(ARCHBUILD_DIR)/src
 	cp linux/PKGBUILD $(ARCHBUILD_DIR)/
-	cp -pr * $(ARCHBUILD_DIR)/src
+	cp -Rp * $(ARCHBUILD_DIR)/src
 	( cd $(ARCHBUILD_DIR) && makepkg )
-	cp $(ARCHBUILD_DIR)/$(PROG)-*.pkg.* .
-	rm -rf $(ARCHBUILD_DIR)
-	@echo "Install with: 'sudo pacman -U $(shell ls $(PROG)-*.pkg.*)'"
+	@pkg=`( cd $(ARCHBUILD_DIR); ls $(PROG)-*.pkg.* )` ; \
+		cp -v $(ARCHBUILD_DIR)/$${pkg} . ; \
+		rm -rf $(ARCHBUILD_DIR) ; \
+		echo "Install with: 'sudo pacman -U $${pkg}'"
 
 clean:
 	rm -f $(PROG) $(OBJS)
