@@ -1,5 +1,5 @@
 Name:		cpdup
-Version:	1.20
+Version:	1.21
 Release:	1%{?dist}
 Summary:	Filesystem mirroring utility from DragonFly BSD
 
@@ -41,5 +41,7 @@ gzip -9 %{buildroot}%{_mandir}/man1/%{name}.1
 %license %{name}-%{version}/LICENSE
 
 %changelog
+* Sat Apr 4 2020 Aaron LI <aly@aaronly.me> - 1.21-1
+- Support microsecond timestamp precision
 * Fri Oct 25 2019 Aaron LI <aly@aaronly.me> - 1.20-1
 - Initial package for version 1.20

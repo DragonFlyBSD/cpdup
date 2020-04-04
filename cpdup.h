@@ -24,7 +24,7 @@
 #include <fnmatch.h>
 #include <assert.h>
 
-#define VERSION	"1.20"
+#define VERSION	"1.21"
 #define AUTHORS	"Matt Dillon, Dima Ruban, & Oliver Fromme"
 
 #ifdef __linux__
