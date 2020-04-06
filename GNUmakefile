@@ -49,7 +49,7 @@ rpm:
 		pkg=`( cd $(RPMBUILD_DIR)/RPMS/$${arch}; ls $(PROG)-*.rpm )` ; \
 		cp -v $(RPMBUILD_DIR)/RPMS/$${arch}/$${pkg} . ; \
 		rm -rf $(RPMBUILD_DIR) ; \
-		@echo "Install with: 'sudo rpm -ivh $${pkg}'"
+		@echo "Install with: 'sudo yum localinstall $${pkg}'"
 
 archpkg:
 	mkdir -p $(ARCHBUILD_DIR)/src
