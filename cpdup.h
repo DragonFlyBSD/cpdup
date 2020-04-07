@@ -32,6 +32,13 @@
 #  define __unused __attribute__((unused))
 #endif
 
+#ifndef __dead2
+#define __dead2 __attribute__((__noreturn__))
+#endif
+
+#ifndef __printf0like
+#define __printf0like(a,b) __attribute__((__format__ (__printf__, a, b)))
+#endif
 
 void logstd(const char *ctl, ...) __printflike(1, 2);
 void logerr(const char *ctl, ...) __printflike(1, 2);

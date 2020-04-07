@@ -3,7 +3,8 @@ CPDUP -- Filesystem Mirroring Utility
 
 Introduction
 ------------
-This repository hosts the **`cpdup`** utility for the Linux operating system
+This repository hosts the **`cpdup`** utility for the Linux and
+[NetBSD](https://www.netbsd.org/) operating systems
 ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
 operating system.
 
