@@ -8,11 +8,7 @@
 
 #include "cpdup.h"
 
-#ifdef WITH_LIBMD
-#include <md5.h>
-#else
 #include <openssl/md5.h>
-#endif
 
 typedef struct MD5Node {
     struct MD5Node *md_Next;
@@ -258,12 +254,11 @@ md5_check(const char *spath, const char *dpath)
     return(r);
 }
 
-#ifndef WITH_LIBMD
 static char *
 md5_file(const char *filename, char *buf)
 {
     unsigned char digest[MD5_DIGEST_LENGTH];
-    static const char hex[]="0123456789abcdef";
+    static const char hex[] = "0123456789abcdef";
     MD5_CTX ctx;
     unsigned char buffer[4096];
     struct stat st;
@@ -311,7 +306,6 @@ err:
 
     return buf;
 }
-#endif
 
 char *
 doMD5File(const char *filename, char *buf, int is_target)
@@ -326,10 +320,5 @@ doMD5File(const char *filename, char *buf, int is_target)
 		    CountSourceReadBytes += size;
 	}
     }
-#ifdef WITH_LIBMD
-    return MD5File(filename, buf);
-#else
     return md5_file(filename, buf);
-#endif
 }
-
