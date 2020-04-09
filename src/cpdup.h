@@ -27,9 +27,8 @@
 #define VERSION	"1.21"
 #define AUTHORS	"Matt Dillon, Dima Ruban, & Oliver Fromme"
 
-#ifdef __linux__
-#  define __printf0like(a,b)
-#  define __unused __attribute__((unused))
+#ifndef __unused
+#define __unused __attribute__((unused))
 #endif
 
 #ifndef __dead2
