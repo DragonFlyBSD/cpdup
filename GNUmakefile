@@ -1,7 +1,9 @@
 PROG=		cpdup
 MAN=		cpdup.1
-SRCS=		cpdup.c hcproto.c hclink.c misc.c fsmid.c md5.c
+SRCS=		$(wildcard src/*.c)
 OBJS=		$(SRCS:.c=.o)
+DISTFILES=	GNUmakefile LICENSE README.md src $(MAN)
+DISTFILES+=	BACKUPS PORTING
 
 CFLAGS=		-O -pipe -std=c99 -pedantic
 CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
@@ -54,7 +56,7 @@ rpm:
 archpkg:
 	mkdir -p $(ARCHBUILD_DIR)/src
 	cp linux/PKGBUILD $(ARCHBUILD_DIR)/
-	cp -Rp * $(ARCHBUILD_DIR)/src
+	cp -Rp $(DISTFILES) $(ARCHBUILD_DIR)/src/
 	( cd $(ARCHBUILD_DIR) && makepkg )
 	@pkg=`( cd $(ARCHBUILD_DIR); ls $(PROG)-*.pkg.* )` ; \
 		cp -v $(ARCHBUILD_DIR)/$${pkg} . ; \
@@ -65,11 +67,3 @@ clean:
 	rm -f $(PROG) $(OBJS)
 
 .PHONY: all install clean rpm archpkg
-
-# Dependencies
-cpdup.o: cpdup.c cpdup.h hclink.h hcproto.h
-hcproto.o: hcproto.c cpdup.h hclink.h hcproto.h
-hclink.o: hclink.c cpdup.h hclink.h hcproto.h
-misc.o: misc.c cpdup.h
-fsmid.o: fsmid.c cpdup.h
-md5.o: md5.c cpdup.h
