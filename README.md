@@ -3,14 +3,6 @@ CPDUP -- Filesystem Mirroring Utility
 
 Introduction
 ------------
-This repository hosts the **`cpdup`** utility for the Linux and
-[NetBSD](https://www.netbsd.org/) operating systems
-ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
-operating system.
-
-The upstream source can be found at:
-[DragonFlyBSD: `bin/cpdup`](https://gitweb.dragonflybsd.org/dragonfly.git/tree/HEAD:/bin/cpdup)
-
 The `cpdup` utility makes an exact mirror copy of the source in the
 destination, creating and deleting files and directories as necessary.
 UTimes, hardlinks, softlinks, devices, permissions, and flags are
@@ -23,23 +15,34 @@ measure, `cpdup` refuses to replace a destination directory with a file.
 
 The `cpdup` utility was originally created to update servers at
 BEST Internet circa 1997 and was placed under the FreeBSD copyright for
-inclusion in the ports area in 1999.
-This program was written by Matthew Dillon, Dima Ruban, and later
+inclusion in the [Ports Collection](https://www.freebsd.org/ports/) in 1999.
+This utility was written by Matthew Dillon, Dima Ruban, and later
 significantly improved by Oliver Fromme.
 
-The `cpdup` utility is distributed under [The 3-Clause BSD License](LICENSE).
+Upstream source:
+[DragonFly BSD's `bin/cpdup`](https://gitweb.dragonflybsd.org/dragonfly.git/tree/HEAD:/bin/cpdup)
 
 Manual page: [`cpdup(1)`](https://www.dragonflybsd.org/cgi/web-man?command=cpdup&section=1)
 
+Platforms
+---------
+* DragonFly BSD
+* NetBSD
+* Linux (tested with Arch Linux and CentOS)
 
-Build & Installation
---------------------
+This repository hosts the **`cpdup`** utility for the Linux and
+[NetBSD](https://www.netbsd.org/) operating systems
+ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
+operating system.
+
+Installation
+------------
 1.  Install dependencies:
 
     * `make` (GNU make)
     * `gcc`
     * `pkg-config`
-    * `libbsd-dev` (Required on Linux)
+    * `libbsd-dev` (Required only on Linux)
     * `libssl-dev` (OpenSSL/LibreSSL)
 
     Arch Linux: `pacman -S pkgconf libbsd openssl`
@@ -54,6 +57,8 @@ Build & Installation
 
 3.  Install: `sudo make install [PREFIX=/usr/local]`
 
+Packages
+--------
 **Arch Linux**:
 
     $ make archpkg
@@ -63,3 +68,7 @@ Build & Installation
 
     $ make rpm
     $ sudo rpm -ivh cpdup-*.rpm
+
+License
+-------
+[The 3-Clause BSD License](LICENSE)
