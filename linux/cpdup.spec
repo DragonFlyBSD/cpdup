@@ -1,6 +1,6 @@
 Name:		cpdup
 Version:	1.21
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Filesystem mirroring utility from DragonFly BSD
 
 License:	BSD
@@ -18,29 +18,28 @@ As a safety measure, "cpdup" refuses to replace a destination directory with
 a file.
 
 %prep
-mkdir %{name}-%{version}
-cp -pr %{_sourcedir}/* %{name}-%{version}/
+# empty
 
 %build
-cd %{name}-%{version} && make
+make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -s -Dm 755 %{name}-%{version}/%{name} \
-	%{buildroot}%{_bindir}/%{name}
-install -Dm 644 %{name}-%{version}/%{name}.1 \
-	%{buildroot}%{_mandir}/man1/%{name}.1
+install -s -Dm 755 %{name} %{buildroot}%{_bindir}/%{name}
+install -Dm 644 %{name}.1 %{buildroot}%{_mandir}/man1/%{name}.1
 gzip -9 %{buildroot}%{_mandir}/man1/%{name}.1
 
 %files
 %{_bindir}/%{name}
 %{_mandir}/man1/%{name}.1.gz
-%doc %{name}-%{version}/README.md
-%doc %{name}-%{version}/BACKUPS
-%doc %{name}-%{version}/PORTING
-%license %{name}-%{version}/LICENSE
+%doc README.md
+%doc BACKUPS
+%doc PORTING
+%license LICENSE
 
 %changelog
+* Fri Apr 10 2020 Aaron LI <aly@aaronly.me> - 1.21-2
+- Simplify this RPM spec
 * Sat Apr 4 2020 Aaron LI <aly@aaronly.me> - 1.21-1
 - Support microsecond timestamp precision
 * Fri Oct 25 2019 Aaron LI <aly@aaronly.me> - 1.20-1

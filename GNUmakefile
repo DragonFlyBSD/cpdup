@@ -42,16 +42,16 @@ install:
 	gzip -9 $(MAN_DIR)/man1/$(MAN)
 
 rpm:
-	mkdir -p $(RPMBUILD_DIR)
+	mkdir -p $(RPMBUILD_DIR)/BUILD
+	cp -Rp $(DISTFILES) $(RPMBUILD_DIR)/BUILD/
 	rpmbuild -bb -v \
-		--define="_sourcedir $(PWD)" \
 		--define="_topdir $(RPMBUILD_DIR)" \
 		linux/$(PROG).spec
 	@arch=`uname -m` ; \
 		pkg=`( cd $(RPMBUILD_DIR)/RPMS/$${arch}; ls $(PROG)-*.rpm )` ; \
 		cp -v $(RPMBUILD_DIR)/RPMS/$${arch}/$${pkg} . ; \
 		rm -rf $(RPMBUILD_DIR) ; \
-		@echo "Install with: 'sudo yum localinstall $${pkg}'"
+		echo "Install with: 'sudo yum localinstall $${pkg}'"
 
 archpkg:
 	mkdir -p $(ARCHBUILD_DIR)/src
