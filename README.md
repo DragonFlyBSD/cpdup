@@ -27,13 +27,11 @@ Manual page: [`cpdup(1)`](https://www.dragonflybsd.org/cgi/web-man?command=cpdup
 Platforms
 ---------
 * DragonFly BSD
+* FreeBSD
 * NetBSD
-* Linux (tested with Arch Linux and CentOS)
+* Linux (tested on Arch Linux and CentOS)
 
-This repository hosts the **`cpdup`** utility for the Linux and
-[NetBSD](https://www.netbsd.org/) operating systems
-ported from the [DragonFly BSD](https://www.dragonflybsd.org/)
-operating system.
+(Welcome to help test on and port to more platforms)
 
 Installation
 ------------
