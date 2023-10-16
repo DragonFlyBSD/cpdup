@@ -33,7 +33,7 @@
 
 #include "cpdup.h"
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 typedef struct MD5Node {
     struct MD5Node *md_Next;
@@ -282,13 +282,14 @@ md5_check(const char *spath, const char *dpath)
 static char *
 md5_file(const char *filename, char *buf)
 {
-    unsigned char digest[MD5_DIGEST_LENGTH];
+    unsigned char digest[EVP_MAX_MD_SIZE];
     static const char hex[] = "0123456789abcdef";
-    MD5_CTX ctx;
+    EVP_MD_CTX *ctx;
     unsigned char buffer[4096];
     struct stat st;
     off_t size;
-    int fd, bytes, i;
+    int fd, bytes;
+    unsigned int i, md_len;
 
     fd = open(filename, O_RDONLY);
     if (fd < 0)
@@ -298,7 +299,11 @@ md5_file(const char *filename, char *buf)
 	goto err;
     }
 
-    MD5_Init(&ctx);
+    ctx = EVP_MD_CTX_new();
+    if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL)) {
+	fprintf(stderr, "Unable to initialize MD5 digest.\n");
+	exit(1);
+    }
     size = st.st_size;
     bytes = 0;
     while (size > 0) {
@@ -308,7 +313,11 @@ md5_file(const char *filename, char *buf)
 	     bytes = read(fd, buffer, size);
 	if (bytes < 0)
 	     break;
-	MD5_Update(&ctx, buffer, bytes);
+	if (!EVP_DigestUpdate(ctx, buffer, bytes)) {
+	     EVP_MD_CTX_free(ctx);
+	     fprintf(stderr, "Unable to update MD5 digest.\n");
+	     exit(1);
+	}
 	size -= bytes;
     }
 
@@ -317,17 +326,23 @@ err:
     if (bytes < 0)
 	return NULL;
 
+    if (!EVP_DigestFinal(ctx, digest, &md_len)) {
+	EVP_MD_CTX_free(ctx);
+	fprintf(stderr, "Unable to finalize MD5 digest.\n");
+	exit(1);
+    }
+    EVP_MD_CTX_free(ctx);
+
     if (!buf)
-	buf = malloc(MD5_DIGEST_LENGTH * 2 + 1);
+	buf = malloc(md_len * 2 + 1);
     if (!buf)
 	return NULL;
 
-    MD5_Final(digest, &ctx);
-    for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
+    for (i = 0; i < md_len; i++) {
 	buf[2*i] = hex[digest[i] >> 4];
 	buf[2*i+1] = hex[digest[i] & 0x0f];
     }
-    buf[MD5_DIGEST_LENGTH * 2] = '\0';
+    buf[md_len * 2] = '\0';
 
     return buf;
 }
