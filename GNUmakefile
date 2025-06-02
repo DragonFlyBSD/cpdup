@@ -2,8 +2,8 @@ PROG=		cpdup
 MAN=		cpdup.1
 SRCS=		$(wildcard src/*.c)
 OBJS=		$(SRCS:.c=.o)
-DISTFILES=	GNUmakefile LICENSE README.md src $(MAN)
-DISTFILES+=	BACKUPS PORTING
+DISTFILES=	GNUmakefile autodep.mk src $(MAN)
+DISTFILES+=	BACKUPS PORTING LICENSE README.md
 
 CFLAGS=		-O -pipe -std=c99 -pedantic
 CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
