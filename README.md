@@ -57,6 +57,11 @@ Installation
 
 Packages
 --------
+**Debian Linux**:
+
+    $ make debpkg
+    $ sudo dpkg -i cpdup_*.deb
+
 **Arch Linux**:
 
     $ make archpkg
