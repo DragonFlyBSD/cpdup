@@ -5,7 +5,7 @@ OBJS=		$(SRCS:.c=.o)
 DISTFILES=	GNUmakefile autodep.mk src $(MAN)
 DISTFILES+=	BACKUPS PORTING LICENSE README.md
 
-CFLAGS=		-O -pipe -std=c99 -pedantic
+CFLAGS=		-g -O2 -pipe -std=c99 -pedantic
 CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
 		-Wwrite-strings -Wcast-qual -Wcast-align
 #CFLAGS+=	-Wduplicated-cond -Wduplicated-branches \
@@ -38,7 +38,7 @@ $(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
 install:
-	install -s -Dm 0755 $(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
+	install -Dm 0755 $(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
 	install -Dm 0644 $(MAN) $(DESTDIR)$(MAN_DIR)/man1/$(MAN)
 	gzip -9 $(DESTDIR)$(MAN_DIR)/man1/$(MAN)
 
