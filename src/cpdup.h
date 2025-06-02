@@ -24,9 +24,9 @@
 #include <fnmatch.h>
 #include <assert.h>
 
+#ifdef __linux
+
 /*
- * See ./mklinux script
- *
  * This is a horrible hack.  lchmod also seems to be missing
  * on the Debian system I am testing compatibility on (which will
  * break the symlink handling code), so not sure what to do about
@@ -34,31 +34,32 @@
  *
  * XXX TODO
  */
-#ifdef __linux
-
-#define __printflike(a, b)
-#define __printf0like(a, b)
-#define __aligned(n)
-#define __dead2
-#define __unused
-
 #define lchmod	chmod	/* horrible hack */
 
-#endif
+#endif /* __linux */
 
 #define VERSION	"1.22"
 #define AUTHORS	"Matt Dillon, Dima Ruban, & Oliver Fromme"
 
 #ifndef __unused
-#define __unused __attribute__((unused))
+#define __unused __attribute__((__unused__))
+#endif
+
+#ifndef __aligned
+#define __aligned(n) __attribute__((__aligned__(n)))
 #endif
 
 #ifndef __dead2
 #define __dead2 __attribute__((__noreturn__))
 #endif
 
+#ifndef __printflike
+#define __printflike(a,b) \
+	__attribute__((__nonnull__(a), __format__(__printf__, a, b)))
+#endif
+
 #ifndef __printf0like
-#define __printf0like(a,b) __attribute__((__format__ (__printf__, a, b)))
+#define __printf0like(a,b) __attribute__((__format__(__printf__, a, b)))
 #endif
 
 void logstd(const char *ctl, ...) __printflike(1, 2);
