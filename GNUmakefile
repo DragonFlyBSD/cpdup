@@ -38,9 +38,9 @@ $(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
 install:
-	install -s -Dm 0755 $(PROG) $(PREFIX)/bin/$(PROG)
-	install -Dm 0644 $(MAN) $(MAN_DIR)/man1/$(MAN)
-	gzip -9 $(MAN_DIR)/man1/$(MAN)
+	install -s -Dm 0755 $(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
+	install -Dm 0644 $(MAN) $(DESTDIR)$(MAN_DIR)/man1/$(MAN)
+	gzip -9 $(DESTDIR)$(MAN_DIR)/man1/$(MAN)
 
 rpm:
 	mkdir -p $(OUTPUT_DIR)
