@@ -30,6 +30,7 @@ MAN_DIR?=	$(PREFIX)/share/man
 TMPDIR?=	/tmp
 RPMBUILD_DIR?=	$(TMPDIR)/$(PROG)-rpmbuild
 ARCHBUILD_DIR?=	$(TMPDIR)/$(PROG)-archbuild
+OUTPUT_DIR?=	$(CURDIR)
 
 all: $(PROG)
 
@@ -42,6 +43,7 @@ install:
 	gzip -9 $(MAN_DIR)/man1/$(MAN)
 
 rpm:
+	mkdir -p $(OUTPUT_DIR)
 	mkdir -p $(RPMBUILD_DIR)/BUILD
 	cp -Rp $(DISTFILES) $(RPMBUILD_DIR)/BUILD/
 	rpmbuild -bb -v \
@@ -49,17 +51,18 @@ rpm:
 		linux/$(PROG).spec
 	@arch=`uname -m` ; \
 		pkg=`( cd $(RPMBUILD_DIR)/RPMS/$${arch}; ls $(PROG)-*.rpm )` ; \
-		cp -v $(RPMBUILD_DIR)/RPMS/$${arch}/$${pkg} . ; \
+		cp -v $(RPMBUILD_DIR)/RPMS/$${arch}/$${pkg} $(OUTPUT_DIR) ; \
 		rm -rf $(RPMBUILD_DIR) ; \
 		echo "Install with: 'sudo yum localinstall $${pkg}'"
 
 archpkg:
+	mkdir -p $(OUTPUT_DIR)
 	mkdir -p $(ARCHBUILD_DIR)/src
 	cp linux/PKGBUILD $(ARCHBUILD_DIR)/
 	cp -Rp $(DISTFILES) $(ARCHBUILD_DIR)/src/
 	( cd $(ARCHBUILD_DIR) && makepkg )
 	@pkg=`( cd $(ARCHBUILD_DIR); ls $(PROG)-*.pkg.* )` ; \
-		cp -v $(ARCHBUILD_DIR)/$${pkg} . ; \
+		cp -v $(ARCHBUILD_DIR)/$${pkg} $(OUTPUT_DIR) ; \
 		rm -rf $(ARCHBUILD_DIR) ; \
 		echo "Install with: 'sudo pacman -U $${pkg}'"
 
