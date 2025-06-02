@@ -1,12 +1,36 @@
 /*-
- * CPDUP.C
+ * SPDX-License-Identifier: BSD-3-Clause
  *
- * CPDUP <options> source destination
+ * Copyright (c) 1997-2010 by Matthew Dillon, Dima Ruban, and Oliver Fromme.
  *
- * (c) Copyright 1997-1999 by Matthew Dillon and Dima Ruban.  Permission to
- *     use and distribute based on the FreeBSD copyright.  Supplied as-is,
- *     USE WITH EXTREME CAUTION.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of The DragonFly Project nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific, prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+/*
  * This program attempts to duplicate the source onto the destination as
  * exactly as possible, retaining modify times, flags, perms, uid, and gid.
  * It can duplicate devices, files (including hardlinks), softlinks,
@@ -27,30 +51,17 @@
  *
  *	- does not copy file if mtime, flags, perms, and size match unless
  *	  forced
- *
  *	- copies to temporary and renames-over the original, allowing
  *	  you to update live systems
- *
  *	- copies uid, gid, mtime, perms, flags, softlinks, devices, hardlinks,
  *	  and recurses through directories.
- *
  *	- accesses a per-directory exclusion file, .cpignore, containing
  *	  standard wildcarded ( ? / * style, NOT regex) exclusions.
- *
  *	- tries to play permissions and flags smart in regards to overwriting
  *	  schg files and doing related stuff.
- *
  *	- Can do MD5 consistancy checks
- *
  *	- Is able to do incremental mirroring/backups via hardlinks from
  *	  the 'previous' version (supplied with -H path).
- */
-
-/*-
- * Example: cc -O cpdup.c -o cpdup -lcrypto
- *
- * ".MD5.CHECKSUMS" contains md5 checksumms for the current directory.
- * This file is stored on the source.
  */
 
 #include "cpdup.h"
