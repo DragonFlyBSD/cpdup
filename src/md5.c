@@ -320,5 +320,6 @@ doMD5File(const char *filename, char *buf, int is_target)
 		    CountSourceReadBytes += size;
 	}
     }
+
     return md5_file(filename, buf);
 }

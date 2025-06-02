@@ -166,7 +166,7 @@ fatal(const char *ctl, ...)
     va_list va;
 
     if (ctl == NULL) {
-	puts("usage: cpdup [<options>] src [dest]");
+	puts("usage: cpdup [options] src dest");
 	puts("\n"
 	     "options:\n"
 	     "    -C          request compressed ssh link if remote operation\n"
