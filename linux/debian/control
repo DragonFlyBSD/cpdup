@@ -1,0 +1,20 @@
+Source: cpdup
+Priority: optional
+Maintainer: Aaron LI <aly@aaronly.me>
+Build-Depends:
+ debhelper-compat (= 13),
+ libbsd-dev,
+ libssl-dev,
+ make,
+ pkgconf | pkg-config
+Standards-Version: 4.6.1
+Rules-Requires-Root: no
+Homepage: https://github.com/DragonFlyBSD/cpdup
+
+Package: cpdup
+Section: net
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: Filesystem mirroring utility from DragonFly BSD

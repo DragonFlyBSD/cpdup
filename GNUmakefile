@@ -30,6 +30,7 @@ MAN_DIR?=	$(PREFIX)/share/man
 TMPDIR?=	/tmp
 RPMBUILD_DIR?=	$(TMPDIR)/$(PROG)-rpmbuild
 ARCHBUILD_DIR?=	$(TMPDIR)/$(PROG)-archbuild
+DEBBUILD_DIR?=	$(TMPDIR)/$(PROG)-debbuild
 OUTPUT_DIR?=	$(CURDIR)
 
 all: $(PROG)
@@ -68,9 +69,21 @@ archpkg:
 		rm -rf $(ARCHBUILD_DIR) ; \
 		echo "Install with: 'sudo pacman -U $${pkg}'"
 
+debpkg:
+	mkdir -p $(OUTPUT_DIR)
+	rm -rf $(DEBBUILD_DIR)
+	mkdir -p $(DEBBUILD_DIR)/build
+	cp -Rp $(DISTFILES) $(DEBBUILD_DIR)/build/
+	cp -Rp linux/debian $(DEBBUILD_DIR)/build/
+	cd $(DEBBUILD_DIR)/build && \
+		dpkg-buildpackage --build=binary --no-sign
+	mv -v $(DEBBUILD_DIR)/$(PROG)*.deb $(OUTPUT_DIR)
+	rm -rf $(DEBBUILD_DIR)
+	@ cd $(OUTPUT_DIR) && printf "\nDebian packages:\n" && ls -1 *.deb
+
 clean:
 	rm -f $(PROG) $(OBJS)
 
-.PHONY: all install clean rpm archpkg
+.PHONY: all install clean rpm archpkg debpkg
 
 include autodep.mk
