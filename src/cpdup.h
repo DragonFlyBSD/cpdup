@@ -44,8 +44,6 @@
 
 #define lchmod	chmod	/* horrible hack */
 
-size_t strlcpy(char *dst, const char *src, size_t size);
-
 #endif
 
 #define VERSION	"1.22"
