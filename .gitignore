@@ -2,6 +2,7 @@
 *.swp
 *.orig
 *.bak
+*.d
 *.o
 *.so
 *.gz
