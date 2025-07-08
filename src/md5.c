@@ -291,52 +291,42 @@ md5_file(const char *filename, char *buf)
     int fd, bytes;
     unsigned int i, md_len;
 
+    ctx = NULL;
     fd = open(filename, O_RDONLY);
     if (fd < 0)
-	return NULL;
-    if (fstat(fd, &st) < 0) {
-	bytes = -1;
 	goto err;
-    }
+    if (fstat(fd, &st) < 0)
+	goto err;
 
     ctx = EVP_MD_CTX_new();
-    if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL)) {
-	fprintf(stderr, "Unable to initialize MD5 digest.\n");
-	exit(1);
-    }
+    if (ctx == NULL)
+	goto err;
+    if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL))
+	goto err;
+
     size = st.st_size;
-    bytes = 0;
     while (size > 0) {
 	if ((size_t)size > sizeof(buffer))
 	     bytes = read(fd, buffer, sizeof(buffer));
 	else
 	     bytes = read(fd, buffer, size);
 	if (bytes < 0)
-	     break;
-	if (!EVP_DigestUpdate(ctx, buffer, bytes)) {
-	     EVP_MD_CTX_free(ctx);
-	     fprintf(stderr, "Unable to update MD5 digest.\n");
-	     exit(1);
-	}
+	     goto err;
+	if (!EVP_DigestUpdate(ctx, buffer, bytes))
+	     goto err;
 	size -= bytes;
     }
 
-err:
-    close(fd);
-    if (bytes < 0)
-	return NULL;
-
-    if (!EVP_DigestFinal(ctx, digest, &md_len)) {
-	EVP_MD_CTX_free(ctx);
-	fprintf(stderr, "Unable to finalize MD5 digest.\n");
-	exit(1);
-    }
-    EVP_MD_CTX_free(ctx);
+    if (!EVP_DigestFinal(ctx, digest, &md_len))
+	goto err;
 
     if (!buf)
 	buf = malloc(md_len * 2 + 1);
     if (!buf)
-	return NULL;
+	goto err;
+
+    close(fd);
+    EVP_MD_CTX_free(ctx);
 
     for (i = 0; i < md_len; i++) {
 	buf[2*i] = hex[digest[i] >> 4];
@@ -345,6 +335,13 @@ err:
     buf[md_len * 2] = '\0';
 
     return buf;
+
+err:
+    if (fd >= 0)
+	close(fd);
+    if (ctx != NULL)
+	EVP_MD_CTX_free(ctx);
+    return NULL;
 }
 
 char *
