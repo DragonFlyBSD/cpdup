@@ -10,5 +10,8 @@
 *.rpm
 *.deb
 *.html
+*.diff
+*.patch
+*.rej
 
 /cpdup
