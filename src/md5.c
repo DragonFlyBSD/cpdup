@@ -44,7 +44,7 @@ typedef struct MD5Node {
 
 static MD5Node *md5_lookup(const char *sfile);
 static void md5_cache(const char *spath, int sdirlen);
-static char *doMD5File(const char *filename, char *buf, int is_target);
+static char *md5_file(const char *filename, char *buf, int is_target);
 
 static char *MD5SCache;		/* cache source directory name */
 static MD5Node *MD5Base;
@@ -230,7 +230,7 @@ md5_check(const char *spath, const char *dpath)
      */
 
     if (dpath == NULL) {
-	char *scode = doMD5File(spath, NULL, 0);
+	char *scode = md5_file(spath, NULL, 0);
 
 	r = 0;
 	if (node->md_Code == NULL) {
@@ -253,16 +253,16 @@ md5_check(const char *spath, const char *dpath)
      */
 
     if (node->md_Code == NULL) {
-	node->md_Code = doMD5File(spath, NULL, 0);
+	node->md_Code = md5_file(spath, NULL, 0);
 	MD5SCacheDirty = 1;
     }
 
-    dcode = doMD5File(dpath, NULL, 1);
+    dcode = md5_file(dpath, NULL, 1);
     if (dcode) {
 	if (strcmp(node->md_Code, dcode) == 0) {
 	    r = 0;
 	} else {
-	    char *scode = doMD5File(spath, NULL, 0);
+	    char *scode = md5_file(spath, NULL, 0);
 
 	    if (strcmp(node->md_Code, scode) == 0) {
 		    free(scode);
@@ -280,10 +280,10 @@ md5_check(const char *spath, const char *dpath)
 }
 
 static char *
-md5_file(const char *filename, char *buf)
+md5_file(const char *filename, char *buf, int is_target)
 {
-    unsigned char digest[EVP_MAX_MD_SIZE];
     static const char hex[] = "0123456789abcdef";
+    unsigned char digest[EVP_MAX_MD_SIZE];
     EVP_MD_CTX *ctx;
     unsigned char buffer[4096];
     struct stat st;
@@ -316,6 +316,12 @@ md5_file(const char *filename, char *buf)
 	     goto err;
 	size -= bytes;
     }
+    if (SummaryOpt) {
+	if (is_target)
+	    CountTargetReadBytes += st.st_size;
+	else
+	    CountSourceReadBytes += st.st_size;
+    }
 
     if (!EVP_DigestFinal(ctx, digest, &md_len))
 	goto err;
@@ -342,21 +348,4 @@ err:
     if (ctx != NULL)
 	EVP_MD_CTX_free(ctx);
     return NULL;
-}
-
-char *
-doMD5File(const char *filename, char *buf, int is_target)
-{
-    if (SummaryOpt) {
-	struct stat st;
-	if (stat(filename, &st) == 0) {
-	    uint64_t size = st.st_size;
-	    if (is_target)
-		    CountTargetReadBytes += size;
-	    else
-		    CountSourceReadBytes += size;
-	}
-    }
-
-    return md5_file(filename, buf);
 }
