@@ -298,7 +298,11 @@ md5_file(const char *filename, char *buf, int is_target)
     if (fstat(fd, &st) < 0)
 	goto err;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     ctx = EVP_MD_CTX_new();
+#else
+    ctx = EVP_MD_CTX_create();
+#endif
     if (ctx == NULL)
 	goto err;
     if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL))
@@ -332,7 +336,11 @@ md5_file(const char *filename, char *buf, int is_target)
 	goto err;
 
     close(fd);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     EVP_MD_CTX_free(ctx);
+#else
+    EVP_MD_CTX_destroy(ctx);
+#endif
 
     for (i = 0; i < md_len; i++) {
 	buf[2*i] = hex[digest[i] >> 4];
@@ -345,7 +353,12 @@ md5_file(const char *filename, char *buf, int is_target)
 err:
     if (fd >= 0)
 	close(fd);
-    if (ctx != NULL)
+    if (ctx != NULL) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	EVP_MD_CTX_free(ctx);
+#else
+	EVP_MD_CTX_destroy(ctx);
+#endif
+    }
     return NULL;
 }
