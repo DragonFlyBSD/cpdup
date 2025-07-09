@@ -29,7 +29,7 @@ Platforms
 * DragonFly BSD
 * FreeBSD
 * NetBSD
-* Linux (tested on Arch Linux and CentOS)
+* Linux
 
 (Welcome to help test on and port to more platforms)
 
@@ -41,7 +41,7 @@ Installation
     * `gcc`
     * `pkg-config`
     * `libbsd-dev` (Required only on Linux)
-    * `libssl-dev` (OpenSSL/LibreSSL)
+    * `libssl-dev` (OpenSSL >= 1.0.2 or LibreSSL)
 
     Arch Linux: `pacman -S pkgconf libbsd openssl`
 
