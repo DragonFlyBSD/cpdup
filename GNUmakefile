@@ -12,8 +12,8 @@ CFLAGS+=	-Wall -Wextra -Wlogical-op -Wshadow -Wformat=2 \
 		-Wrestrict -Wnull-dereference \
 #CFLAGS+=	-Wconversion
 
-CFLAGS+=	$(shell pkg-config --cflags openssl)
-LIBS+=		$(shell pkg-config --libs   openssl)
+CFLAGS+=	$(shell pkg-config --cflags libcrypto)
+LIBS+=		$(shell pkg-config --libs   libcrypto)
 
 OS?=		$(shell uname -s)
 ifeq ($(OS),FreeBSD)
