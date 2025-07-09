@@ -45,6 +45,7 @@ typedef struct MD5Node {
 static MD5Node *md5_lookup(const char *sfile);
 static void md5_cache(const char *spath, int sdirlen);
 static char *md5_file(const char *filename, char *buf, int is_target);
+static char *fextract(FILE *fi, int n, int *pc, int skip);
 
 static char *MD5SCache;		/* cache source directory name */
 static MD5Node *MD5Base;
@@ -361,4 +362,42 @@ err:
 #endif
     }
     return NULL;
+}
+
+static char *
+fextract(FILE *fi, int n, int *pc, int skip)
+{
+    int i;
+    int c;
+    int imax;
+    char *s;
+
+    i = 0;
+    c = *pc;
+    imax = (n < 0) ? 64 : n + 1;
+
+    s = malloc(imax);
+    if (s == NULL)
+	fatal("out of memory");
+
+    while (c != EOF) {
+	if (n == 0 || (n < 0 && (c == ' ' || c == '\n')))
+	    break;
+
+	s[i++] = c;
+	if (i == imax) {
+	    imax += 64;
+	    s = realloc(s, imax);
+	    if (s == NULL)
+		fatal("out of memory");
+	}
+	if (n > 0)
+	    --n;
+	c = getc(fi);
+    }
+    if (c == skip && skip != EOF)
+	c = getc(fi);
+    *pc = c;
+    s[i] = 0;
+    return(s);
 }

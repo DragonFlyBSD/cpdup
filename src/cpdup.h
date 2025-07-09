@@ -95,7 +95,6 @@ void logstd(const char *ctl, ...) __printflike(1, 2);
 void logerr(const char *ctl, ...) __printflike(1, 2);
 char *mprintf(const char *ctl, ...) __printflike(1, 2);
 void fatal(const char *ctl, ...) __dead2 __printf0like(1, 2);
-char *fextract(FILE *fi, int n, int *pc, int skip);
 
 int16_t hc_bswap16(int16_t var);
 int32_t hc_bswap32(int32_t var);
