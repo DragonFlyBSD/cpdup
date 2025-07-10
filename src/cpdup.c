@@ -105,16 +105,15 @@ struct hlink {
     char name[];
 };
 
-typedef struct copy_info {
-	char *spath;
-	char *dpath;
-	dev_t sdevNo;
-	dev_t ddevNo;
-} *copy_info_t;
+struct pathinfo {
+    char *path;
+    dev_t devno;
+    unsigned int generation;
+};
 
 static struct hlink *hltable[HLSIZE];
 
-static void RemoveRecur(const char *dpath, dev_t devNo, struct stat *dstat);
+static void RemoveRecur(const char *dpath, struct stat *dstat);
 static void InitList(List *list);
 static void ResetList(List *list);
 static Node *IterateList(List *list, Node *node, int n);
@@ -141,12 +140,16 @@ static int xrename(const char *src, const char *dst, u_long flags);
 static int xlink(const char *src, const char *dst, u_long flags);
 static int xremove(struct HostConf *host, const char *path);
 static int xrmdir(struct HostConf *host, const char *path);
-static int DoCopy(copy_info_t info, struct stat *stat1, int depth);
+static int DoCopy(const char *spath, const char *dpath, struct stat *stat1,
+	int depth);
 static int ScanDir(List *list, struct HostConf *host, const char *path,
 	int64_t *CountReadBytes, int n);
 static int mtimecmp(struct stat *st1, struct stat *st2);
 static int symlink_mfo_test(struct HostConf *hc, struct stat *st1,
 	struct stat *st2);
+static int _pd_init(struct pathinfo *pPI, struct HostConf *pHost, char *path);
+static int pd_init(char *srcpath, char *dstpath);
+static int pd_changed(dev_t target_devno, int is_src);
 
 int AskConfirmation = 1;
 int SafetyOpt = 1;
@@ -188,6 +191,9 @@ int64_t CountLinkedItems;
 static struct HostConf SrcHost;
 static struct HostConf DstHost;
 
+static struct pathinfo _sinfo;
+static struct pathinfo _dinfo;
+
 int
 main(int ac, char **av)
 {
@@ -197,7 +203,6 @@ main(int ac, char **av)
     char *dst = NULL;
     char *ptr;
     struct timeval start;
-    struct copy_info info;
 
     signal(SIGPIPE, SIG_IGN);
 
@@ -360,20 +365,13 @@ main(int ac, char **av)
 	fprintf(stderr, "Group[%d] == %d\n", i, GroupList[i]);
 #endif
 
-    bzero(&info, sizeof(info));
+    pd_init(src, dst);
+
     if (dst) {
 	DstBaseLen = strlen(dst);
-	info.spath = src;
-	info.dpath = dst;
-	info.sdevNo = (dev_t)-1;
-	info.ddevNo = (dev_t)-1;
-	i = DoCopy(&info, NULL, -1);
+	i = DoCopy(src, dst, NULL, -1);
     } else {
-	info.spath = src;
-	info.dpath = NULL;
-	info.sdevNo = (dev_t)-1;
-	info.ddevNo = (dev_t)-1;
-	i = DoCopy(&info, NULL, -1);
+	i = DoCopy(src, dst, NULL, -1);
     }
 #ifndef NOMD5
     md5_flush();
@@ -416,6 +414,143 @@ main(int ac, char **av)
 	    (int)(CountSourceBytes / duration / 1024.0));
     }
     exit((i == 0) ? 0 : 1);
+}
+
+/*
+ * Initialize device number for a single path.
+ *
+ * The destination's path might not exist when we start, so we might
+ * have to try again later. Therefore, always store the path because
+ * caller pd_changed() won't know the top path.
+ */
+static int _pd_init(struct pathinfo *pPI, struct HostConf *pHost, char *path)
+{
+    struct stat st;
+
+    /*
+     * save path so we can redo stat later if it fails now
+     */
+    if (path) {
+	if (pPI->path) {
+	    free(pPI->path);
+	    pPI->path = NULL;
+	}
+	pPI->path = malloc(strlen(path) + 1);
+	strcpy(pPI->path, path);
+    } else {
+	/*
+	 * NULL path parameter means "use previously-initialized path"
+	 * so it's an error if there isn't a previous path.
+	 */
+	assert(pPI->path);
+	if (VerboseOpt >= 3)
+	    logstd("%s: retrying cached path %s\n", __func__, pPI->path);
+    }
+
+    if (hc_lstat(pHost, pPI->path, &st) != 0) {
+	/* if destination doesn't exist yet, failure here is expected */
+	if (VerboseOpt >= 3)
+	    logstd("%s: hc_lstat(%s) failed\n", __func__, pPI->path);
+	return -1;
+    }
+    pPI->devno = st.st_dev;
+    ++(pPI->generation);
+    return 0;
+}
+
+/*
+ * Attempt to look up src and dst top-level device numbers
+ * at program start.
+ */
+static int
+pd_init(char *srcpath, char *dstpath)
+{
+    if (VerboseOpt >= 2)
+	logstd("%s: src %s, dst %s\n", __func__,
+	    (srcpath? srcpath: "NIL"), (dstpath? dstpath: "NIL"));
+    if (srcpath)
+	if (_pd_init(&_sinfo, &SrcHost, srcpath))
+	    return -1;
+    if (dstpath)
+	if (_pd_init(&_dinfo, &DstHost, dstpath))
+	    return -1;
+    return 0;
+}
+
+/*
+ * Check target_devno (target device number) to see if it is on
+ * the same device as the top of the tree. If the target device number 
+ * is different, then the target is on a different mounted device.
+ *
+ * RETURN VALUES:
+ *
+ * 0		same device id: did not cross mount point
+ * 1		different device id: DID cross mount point
+ * -1		error
+ *
+ * This function re-does the stat call on the top of the file tree
+ * every time it discovers a different device number for <path>
+ * because automounted volumes can be assigned new device numbers
+ * (due to unmount/remount) while we are copying.
+ */
+static int
+pd_changed(dev_t target_devno, int is_src)
+{
+    struct pathinfo *pTPI = is_src? &_sinfo: &_dinfo;
+    struct HostConf *pHost = is_src? &SrcHost: &DstHost;
+
+    if (VerboseOpt >= 4)
+	logstd("%s: target devno 0x%lx, is_src %u\n", __func__,
+	    target_devno, is_src);
+
+    /* initialized? */
+    if (!pTPI->generation && !is_src) {
+	/*
+	 * Destination devno could be uninitialized if it didn't
+	 * exist at program startup. Retry here with cached path.
+	 */
+	if (VerboseOpt >= 3)
+	    logstd("%s: retrying dst devno initialization\n", __func__);
+	_pd_init(&_dinfo, &DstHost, NULL);
+    }
+    assert(pTPI->generation);
+
+    if (target_devno != pTPI->devno) {
+	struct stat stTop;
+
+	/*
+	 * Different device number. Either we really did cross a
+	 * mount point, or we are on an automounted volume that
+	 * got remounted. Recheck top path to see if it changed.
+	 */
+	if (hc_lstat(pHost, pTPI->path, &stTop) != 0) {
+	    logerr("%s: failed: hc_lstat(%s)\n", __func__, pTPI->path);
+	    return -1;
+	}
+	if (stTop.st_dev != pTPI->devno) {
+	    /*
+	     * Remount case: update our notion of top device id.
+	     */
+	    if (VerboseOpt >= 2)
+		logstd("%s: %s Top devno changed: old 0x%lx, new 0x%lx\n",
+		    __func__, (is_src? "src": "dst"),
+		    pTPI->devno, stTop.st_dev);
+
+	    ++(pTPI->generation);
+	    pTPI->devno = stTop.st_dev;
+
+	    /* updated top device number is same as <path> device number */
+	    if (target_devno == pTPI->devno)
+		return 0;
+	}
+	if (VerboseOpt >= 2)
+	    logstd("%s: %s devno differs: top 0x%lx, path 0x%lx\n",
+		__func__, (is_src? "src": "dst"),
+		pTPI->devno, target_devno);
+	return 1;
+    }
+
+    return 0;
 }
 
 static int
@@ -690,16 +825,13 @@ validate_check(const char *spath, const char *dpath)
 }
 
 int
-DoCopy(copy_info_t info, struct stat *stat1, int depth)
+DoCopy(const char *spath, const char *dpath, struct stat *stat1, int depth)
 {
-    const char *spath = info->spath;
-    const char *dpath = info->dpath;
-    dev_t sdevNo = info->sdevNo;
-    dev_t ddevNo = info->ddevNo;
     struct stat st1;
     struct stat st2;
     unsigned long st2_flags;
     int r, mres, fres, st2Valid;
+    int rc;
     struct hlink *hln;
     uint64_t size;
 
@@ -896,7 +1028,7 @@ relink:
 		   ((dpath) ? dpath : spath), "");
 	}
 	if (dpath)
-	    RemoveRecur(dpath, ddevNo, &st2);
+	    RemoveRecur(dpath, &st2);
 	st2Valid = 0;
     }
 
@@ -958,10 +1090,13 @@ relink:
 	 * When copying a directory, stop if the source crosses a mount
 	 * point.
 	 */
-	if (sdevNo != (dev_t)-1 && stat1->st_dev != sdevNo)
+	rc = pd_changed(stat1->st_dev, 1 /* is_src */);
+	if (rc > 0) {
 	    skipdir = 1;
-	else
-	    sdevNo = stat1->st_dev;
+	} else if (rc < 0) {
+	    r = 1;
+	    goto done;
+	}
 
 	/*
 	 * When copying a directory, stop if the destination crosses
@@ -972,15 +1107,17 @@ relink:
 	 * as a flag.  If the stat failed st2 will still only have its
 	 * default initialization.
 	 *
-	 * So we simply assume here that the directory is within the
-	 * current target mount if we had to create it (aka st2Valid is 0)
-	 * and we leave ddevNo alone.
+	 * We assume here that the directory is within the current
+	 * target mount if we had to create it (aka st2Valid is 0).
 	 */
 	if (st2Valid) {
-	    if (ddevNo != (dev_t)-1 && st2.st_dev != ddevNo)
+	    rc = pd_changed(st2.st_dev, 0 /* is_src */);
+	    if (rc > 0) {
 		skipdir = 1;
-	    else
-		ddevNo = st2.st_dev;
+	    } else if (rc < 0) {
+		r = 1;
+		goto done;
+	    }
 	}
 
 	if (!skipdir) {
@@ -1000,19 +1137,13 @@ relink:
 		    if (dpath)
 			ndpath = mprintf("%s/%s", dpath, node->no_Name);
 
-		    info->spath = nspath;
-		    info->dpath = ndpath;
-		    info->sdevNo = sdevNo;
-		    info->ddevNo = ddevNo;
 		    if (depth < 0)
-			r += DoCopy(info, node->no_Stat, depth);
+			r += DoCopy(nspath, ndpath, node->no_Stat, depth);
 		    else
-			r += DoCopy(info, node->no_Stat, depth + 1);
+			r += DoCopy(nspath, ndpath, node->no_Stat, depth + 1);
 		    free(nspath);
 		    if (ndpath)
 			free(ndpath);
-		    info->spath = NULL;
-		    info->dpath = NULL;
 		}
 
 		/*
@@ -1030,7 +1161,7 @@ relink:
 			char *ndpath;
 
 			ndpath = mprintf("%s/%s", dpath, node->no_Name);
-			RemoveRecur(ndpath, ddevNo, node->no_Stat);
+			RemoveRecur(ndpath, node->no_Stat);
 			free(ndpath);
 		    }
 		}
@@ -1471,18 +1602,22 @@ ScanDir(List *list, struct HostConf *host, const char *path,
  */
 
 static void
-RemoveRecur(const char *dpath, dev_t devNo, struct stat *dstat)
+RemoveRecur(const char *dpath, struct stat *dstat)
 {
     struct stat st;
+    int rc;
 
     if (dstat == NULL) {
 	if (hc_lstat(&DstHost, dpath, &st) == 0)
 	    dstat = &st;
     }
     if (dstat != NULL) {
-	if (devNo == (dev_t)-1)
-	    devNo = dstat->st_dev;
-	if (dstat->st_dev == devNo) {
+	rc = pd_changed(dstat->st_dev, 0 /* is_src */);
+	if (rc < 0) {
+	    logerr("%s: pd_changed failed, skipping remove operation\n",
+		__func__);
+	    return;
+	} else if (rc == 0) {
 	    if (S_ISDIR(dstat->st_mode)) {
 		DIR *dir;
 
@@ -1504,7 +1639,7 @@ RemoveRecur(const char *dpath, dev_t devNo, struct stat *dstat)
 			char *ndpath;
 
 			ndpath = mprintf("%s/%s", dpath, node->no_Name);
-			RemoveRecur(ndpath, devNo, node->no_Stat);
+			RemoveRecur(ndpath, node->no_Stat);
 			free(ndpath);
 		    }
 		    ResetList(list);
