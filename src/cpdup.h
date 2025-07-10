@@ -101,6 +101,7 @@ int32_t hc_bswap32(int32_t var);
 int64_t hc_bswap64(int64_t var);
 
 #ifndef NOMD5
+int md5_update(const char *spath);
 int md5_check(const char *spath, const char *dpath);
 void md5_flush(void);
 #endif

@@ -42,7 +42,7 @@ typedef struct MD5Node {
     int md_Accessed;
 } MD5Node;
 
-static MD5Node *md5_lookup(const char *sfile);
+static MD5Node *md5_lookup(const char *spath);
 static void md5_cache(const char *spath, int sdirlen);
 static char *md5_file(const char *filename, char *buf, int is_target);
 static char *fextract(FILE *fi, int n, int *pc, int skip);
@@ -166,9 +166,19 @@ md5_cache(const char *spath, int sdirlen)
  */
 
 static MD5Node *
-md5_lookup(const char *sfile)
+md5_lookup(const char *spath)
 {
+    const char *sfile;
+    int sdirlen;
     MD5Node *node;
+
+    if ((sfile = strrchr(spath, '/')) != NULL)
+	++sfile;
+    else
+	sfile = spath;
+    sdirlen = sfile - spath;
+
+    md5_cache(spath, sdirlen);
 
     for (node = MD5Base; node != NULL; node = node->md_Next) {
 	if (strcmp(sfile, node->md_Name) == 0)
@@ -188,86 +198,94 @@ md5_lookup(const char *sfile)
 }
 
 /*
- * md5_check:  check MD5 against file
+ * md5_update:	force update the source MD5 file.
+ *
+ *	Return -1 if failed
+ *	Return 0  if up-to-date
+ *	Return 1  if updated
+ */
+int
+md5_update(const char *spath)
+{
+    char *scode;
+    int r;
+    MD5Node *node;
+
+    node = md5_lookup(spath);
+
+    scode = md5_file(spath, NULL, 0);
+    if (scode == NULL)
+	return (-1);
+
+    r = 0;
+    if (node->md_Code == NULL) {
+	r = 1;
+	node->md_Code = scode;
+	MD5SCacheDirty = 1;
+    } else if (strcmp(scode, node->md_Code) != 0) {
+	r = 1;
+	free(node->md_Code);
+	node->md_Code = scode;
+	MD5SCacheDirty = 1;
+    } else {
+	free(scode);
+    }
+
+    return (r);
+}
+
+/*
+ * md5_check:	check MD5 against file
  *
  *	Return -1 if check failed
- *	Return 0  if check succeeded
- *
- * dpath can be NULL, in which case we are force-updating
- * the source MD5.
+ *	Return 0  if source and dest files are identical
+ *	Return 1  if source and dest files are not identical
  */
 int
 md5_check(const char *spath, const char *dpath)
 {
-    const char *sfile;
-    char *dcode;
-    int sdirlen;
+    char *scode, *dcode;
     int r;
     MD5Node *node;
 
-    r = -1;
-
-    if ((sfile = strrchr(spath, '/')) != NULL)
-	++sfile;
-    else
-	sfile = spath;
-    sdirlen = sfile - spath;
-
-    md5_cache(spath, sdirlen);
-
-    node = md5_lookup(sfile);
+    node = md5_lookup(spath);
 
     /*
-     * If dpath == NULL, we are force-updating the source .MD5* files
+     * The .MD5* file is used as a cache.
      */
-
-    if (dpath == NULL) {
-	char *scode = md5_file(spath, NULL, 0);
-
-	r = 0;
-	if (node->md_Code == NULL) {
-	    r = -1;
-	    node->md_Code = scode;
-	    MD5SCacheDirty = 1;
-	} else if (strcmp(scode, node->md_Code) != 0) {
-	    r = -1;
-	    free(node->md_Code);
-	    node->md_Code = scode;
-	    MD5SCacheDirty = 1;
-	} else {
-	    free(scode);
-	}
-	return(r);
-    }
-
-    /*
-     * Otherwise the .MD5* file is used as a cache.
-     */
-
     if (node->md_Code == NULL) {
-	node->md_Code = md5_file(spath, NULL, 0);
+	scode = md5_file(spath, NULL, 0);
+	if (scode == NULL)
+	    return (-1);
+
+	node->md_Code = scode;
 	MD5SCacheDirty = 1;
     }
 
     dcode = md5_file(dpath, NULL, 1);
-    if (dcode) {
-	if (strcmp(node->md_Code, dcode) == 0) {
-	    r = 0;
-	} else {
-	    char *scode = md5_file(spath, NULL, 0);
+    if (dcode == NULL)
+	return (-1);
 
-	    if (strcmp(node->md_Code, scode) == 0) {
-		    free(scode);
-	    } else {
-		    free(node->md_Code);
-		    node->md_Code = scode;
-		    MD5SCacheDirty = 1;
-		    if (strcmp(node->md_Code, dcode) == 0)
-			r = 0;
-	    }
+    r = 0;
+    if (strcmp(node->md_Code, dcode) != 0) {
+	r = 1;
+
+	scode = md5_file(spath, NULL, 0);
+	if (scode == NULL)
+	    return (-1);
+
+	if (strcmp(node->md_Code, scode) == 0) {
+	    free(scode);
+	} else {
+	    free(node->md_Code);
+	    node->md_Code = scode;
+	    MD5SCacheDirty = 1;
+	    if (strcmp(node->md_Code, dcode) == 0)
+		r = 0;
 	}
-	free(dcode);
     }
+    free(dcode);
+
     return(r);
 }
 

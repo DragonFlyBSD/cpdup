@@ -1067,15 +1067,19 @@ relink:
 	 */
 #ifndef NOMD5
 	if (UseMD5Opt && S_ISREG(stat1->st_mode)) {
-	    mres = md5_check(spath, NULL);
+	    mres = md5_update(spath);
 
-	    if (VerboseOpt > 1) {
-		if (mres < 0)
-		    logstd("%-32s md5-update\n", (dpath) ? dpath : spath);
-		else
-		    logstd("%-32s md5-ok\n", (dpath) ? dpath : spath);
-	    } else if (!QuietOpt && mres < 0) {
-		logstd("%-32s md5-update\n", (dpath) ? dpath : spath);
+	    if (mres < 0) {
+		logerr("%-32s md5-CHECK-FAILED\n", spath);
+	    } else {
+		if (VerboseOpt > 1) {
+		    if (mres > 0)
+			logstd("%-32s md5-update\n", spath);
+		    else
+			logstd("%-32s md5-ok\n", spath);
+		} else if (!QuietOpt && mres > 0) {
+		    logstd("%-32s md5-update\n", spath);
+		}
 	    }
 	}
 #endif
