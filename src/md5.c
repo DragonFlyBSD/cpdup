@@ -38,14 +38,14 @@
 typedef struct MD5Node {
     struct MD5Node *md_Next;
     char *md_Name;
-    char *md_Code;
+    char md_Code[EVP_MAX_MD_SIZE * 2 + 1]; /* hex-encoded digest */
     int md_Accessed;
 } MD5Node;
 
 static MD5Node *md5_lookup(const char *spath);
 static void md5_cache(const char *spath, int sdirlen);
-static char *md5_file(const char *filename, char *buf, int is_target);
-static char *fextract(FILE *fi, int n, int *pc, int skip);
+static int md5_file(const char *filename, char *buf, int is_target);
+static int fextract(FILE *fi, int *pc, char *buf, size_t len);
 
 static char *MD5SCache;		/* cache source directory name */
 static MD5Node *MD5Base;
@@ -61,7 +61,7 @@ md5_flush(void)
     if (MD5SCacheDirty && MD5SCache && !NotForRealOpt) {
 	if ((fo = fopen(MD5SCache, "w")) != NULL) {
 	    for (node = MD5Base; node; node = node->md_Next) {
-		if (node->md_Accessed && node->md_Code) {
+		if (node->md_Accessed && node->md_Code[0] != '\0') {
 		    fprintf(fo, "%s %zu %s\n",
 			node->md_Code,
 			strlen(node->md_Name),
@@ -79,9 +79,7 @@ md5_flush(void)
 	while ((node = MD5Base) != NULL) {
 	    MD5Base = node->md_Next;
 
-	    if (node->md_Code)
-		free(node->md_Code);
-	    if (node->md_Name)
+	    if (node->md_Name != NULL)
 		free(node->md_Name);
 	    free(node);
 	}
@@ -121,11 +119,19 @@ md5_cache(const char *spath, int sdirlen)
     MD5SCacheDirLen = sdirlen;
     MD5SCache = mprintf("%*.*s%s", sdirlen, sdirlen, spath, MD5CacheFile);
 
+    /*
+     * Line format: "<code> <name_len> <name>"
+     * - code: hex-encoded digest
+     * - name_len: 10-based integer indicating the length of the file name
+     * - name: the file name (may contain special characters)
+     * Example: "359d5608935488c8d0af7eb2a350e2f8 7 cpdup.c"
+     */
     if ((fi = fopen(MD5SCache, "r")) != NULL) {
 	MD5Node **pnode = &MD5Base;
 	MD5Node *node;
-	int c, nlen;
-	char *s;
+	int c, n, nlen;
+	char nbuf[sizeof("2147483647")];
+	char *endp;
 
 	while ((c = fgetc(fi)) != EOF) {
 	    node = malloc(sizeof(MD5Node));
@@ -133,28 +139,66 @@ md5_cache(const char *spath, int sdirlen)
 		fatal("out of memory");
 
 	    bzero(node, sizeof(MD5Node));
-	    node->md_Code = fextract(fi, -1, &c, ' ');
-	    node->md_Accessed = 1;
-	    nlen = 0;
-	    if ((s = fextract(fi, -1, &c, ' ')) != NULL) {
-		nlen = strtol(s, NULL, 0);
-		free(s);
-	    }
-	    /*
-	     * extracting md_Name - name may contain embedded control
-	     * characters.
-	     */
-	    CountSourceReadBytes += nlen+1;
-	    node->md_Name = fextract(fi, nlen, &c, EOF);
-	    if (c != '\n') {
-		fprintf(stderr, "Error parsing MD5 Cache: %s (%c)\n",
-			MD5SCache, c);
-		while (c != EOF && c != '\n')
-		    c = fgetc(fi);
+
+	    if (fextract(fi, &c, node->md_Code, sizeof(node->md_Code)) != 0) {
+		logerr("Error parsing MD5 Cache (%s): invalid digest code\n",
+		       MD5SCache);
+		goto skip;
 	    }
 
+	    c = fgetc(fi);
+	    if (fextract(fi, &c, nbuf, sizeof(nbuf)) != 0) {
+		logerr("Error parsing MD5 Cache (%s): invalid length\n",
+		       MD5SCache);
+		goto skip;
+	    }
+	    nlen = strtol(nbuf, &endp, 10);
+	    if (*endp != '\0' || nlen == 0) {
+		logerr("Error parsing MD5 Cache (%s): invalid length\n",
+		       MD5SCache);
+		goto skip;
+	    }
+
+	    if ((node->md_Name = malloc(nlen + 1)) == NULL)
+		fatal("out of memory");
+	    for (n = 0; n < nlen; n++) {
+		c = fgetc(fi);
+		node->md_Name[n] = c;
+		if (c == EOF) {
+		    logerr("Error parsing MD5 Cache (%s): invalid filename\n",
+			   MD5SCache);
+		    goto skip;
+		}
+	    }
+	    node->md_Name[n] = '\0';
+
+	    c = fgetc(fi);
+	    if (c != '\n' && c != EOF) {
+		logerr("Error parsing MD5 Cache (%s): trailing garbage\n",
+		       MD5SCache);
+		goto skip;
+	    }
+
+	    node->md_Accessed = 1;
 	    *pnode = node;
 	    pnode = &node->md_Next;
+
+	    if (SummaryOpt) {
+		CountSourceReadBytes += strlen(node->md_Code) + strlen(nbuf) +
+		    nlen + 1;
+	    }
+	    if (c == EOF)
+		break;
+	    continue;
+
+	skip:
+	    if (node->md_Name != NULL)
+		free(node->md_Name);
+	    free(node);
+	    while (c != EOF && c != '\n')
+		c = fgetc(fi);
+	    if (c == EOF)
+		break;
 	}
 
 	fclose(fi);
@@ -164,7 +208,6 @@ md5_cache(const char *spath, int sdirlen)
 /*
  * md5_lookup:	lookup/create md5 entry
  */
-
 static MD5Node *
 md5_lookup(const char *spath)
 {
@@ -207,28 +250,21 @@ md5_lookup(const char *spath)
 int
 md5_update(const char *spath)
 {
-    char *scode;
+    char scode[EVP_MAX_MD_SIZE * 2 + 1];
     int r;
     MD5Node *node;
 
     node = md5_lookup(spath);
 
-    scode = md5_file(spath, NULL, 0);
-    if (scode == NULL)
-	return (-1);
-
-    r = 0;
-    if (node->md_Code == NULL) {
-	r = 1;
-	node->md_Code = scode;
-	MD5SCacheDirty = 1;
-    } else if (strcmp(scode, node->md_Code) != 0) {
-	r = 1;
-	free(node->md_Code);
-	node->md_Code = scode;
-	MD5SCacheDirty = 1;
+    if (md5_file(spath, scode, 0 /* is_target */) == 0) {
+	r = 0;
+	if (strcmp(scode, node->md_Code) != 0) {
+	    r = 1;
+	    bcopy(scode, node->md_Code, sizeof(scode));
+	    MD5SCacheDirty = 1;
+	}
     } else {
-	free(scode);
+	r = -1;
     }
 
     return (r);
@@ -244,7 +280,8 @@ md5_update(const char *spath)
 int
 md5_check(const char *spath, const char *dpath)
 {
-    char *scode, *dcode;
+    char scode[EVP_MAX_MD_SIZE * 2 + 1];
+    char dcode[EVP_MAX_MD_SIZE * 2 + 1];
     int r;
     MD5Node *node;
 
@@ -253,43 +290,36 @@ md5_check(const char *spath, const char *dpath)
     /*
      * The .MD5* file is used as a cache.
      */
-    if (node->md_Code == NULL) {
-	scode = md5_file(spath, NULL, 0);
-	if (scode == NULL)
-	    return (-1);
-
-	node->md_Code = scode;
-	MD5SCacheDirty = 1;
-    }
-
-    dcode = md5_file(dpath, NULL, 1);
-    if (dcode == NULL)
-	return (-1);
-
-    r = 0;
-    if (strcmp(node->md_Code, dcode) != 0) {
-	r = 1;
-
-	scode = md5_file(spath, NULL, 0);
-	if (scode == NULL)
-	    return (-1);
-
-	if (strcmp(node->md_Code, scode) == 0) {
-	    free(scode);
-	} else {
-	    free(node->md_Code);
-	    node->md_Code = scode;
-	    MD5SCacheDirty = 1;
-	    if (strcmp(node->md_Code, dcode) == 0)
-		r = 0;
+    if (md5_file(dpath, dcode, 1 /* is_target */) == 0) {
+	r = 0;
+	if (strcmp(node->md_Code, dcode) != 0) {
+	    r = 1;
+	    /*
+	     * Update the source digest code and recheck.
+	     */
+	    if (md5_file(spath, scode, 0 /* is_target */) == 0) {
+		if (strcmp(node->md_Code, scode) != 0) {
+		    bcopy(scode, node->md_Code, sizeof(scode));
+		    MD5SCacheDirty = 1;
+		    if (strcmp(node->md_Code, dcode) == 0)
+			r = 0;
+		}
+	    } else {
+		r = -1;
+	    }
 	}
+    } else {
+	r = -1;
     }
-    free(dcode);
 
     return(r);
 }
 
-static char *
+/*
+ * NOTE: buf will hold the hex-encoded digest and should have a size of
+ *       >= (EVP_MAX_MD_SIZE * 2 + 1).
+ */
+static int
 md5_file(const char *filename, char *buf, int is_target)
 {
     static const char hex[] = "0123456789abcdef";
@@ -340,11 +370,6 @@ md5_file(const char *filename, char *buf, int is_target)
     if (!EVP_DigestFinal(ctx, digest, &md_len))
 	goto err;
 
-    if (!buf)
-	buf = malloc(md_len * 2 + 1);
-    if (!buf)
-	goto err;
-
     close(fd);
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     EVP_MD_CTX_free(ctx);
@@ -358,7 +383,7 @@ md5_file(const char *filename, char *buf, int is_target)
     }
     buf[md_len * 2] = '\0';
 
-    return buf;
+    return (0);
 
 err:
     if (fd >= 0)
@@ -370,43 +395,32 @@ err:
 	EVP_MD_CTX_destroy(ctx);
 #endif
     }
-    return NULL;
+    return (-1);
 }
 
-static char *
-fextract(FILE *fi, int n, int *pc, int skip)
+static int
+fextract(FILE *fi, int *pc, char *buf, size_t len)
 {
-    int i;
+    size_t n;
     int c;
-    int imax;
-    char *s;
 
-    i = 0;
+    n = 0;
     c = *pc;
-    imax = (n < 0) ? 64 : n + 1;
-
-    s = malloc(imax);
-    if (s == NULL)
-	fatal("out of memory");
 
     while (c != EOF) {
-	if (n == 0 || (n < 0 && (c == ' ' || c == '\n')))
+	if (c == ' ') {
+	    *pc = c;
+	    buf[n] = '\0';
+	    return (0);
+	}
+
+	buf[n++] = c;
+	if (n == len)
 	    break;
 
-	s[i++] = c;
-	if (i == imax) {
-	    imax += 64;
-	    s = realloc(s, imax);
-	    if (s == NULL)
-		fatal("out of memory");
-	}
-	if (n > 0)
-	    --n;
-	c = getc(fi);
+	c = fgetc(fi);
     }
-    if (c == skip && skip != EOF)
-	c = getc(fi);
+
     *pc = c;
-    s[i] = 0;
-    return(s);
+    return (-1);
 }
