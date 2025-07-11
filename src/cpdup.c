@@ -699,11 +699,11 @@ DoCopy(copy_info_t info, struct stat *stat1, int depth)
     struct stat st1;
     struct stat st2;
     unsigned long st2_flags;
-    int r, mres, fres, st2Valid;
+    int r, mres, st2Valid;
     struct hlink *hln;
     uint64_t size;
 
-    r = mres = fres = st2Valid = 0;
+    r = mres = st2Valid = 0;
     st2_flags = 0;
     size = 0;
     hln = NULL;
