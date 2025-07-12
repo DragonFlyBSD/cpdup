@@ -110,12 +110,16 @@
 #define HC_DESC_DIR	1
 #define HC_DESC_FD	2
 
-#ifndef MAXNAMLEN
-#define MAXNAMLEN	255
+#ifndef NAME_MAX
+#  ifdef MAXNAMLEN
+#    define NAME_MAX	MAXNAMLEN
+#  else
+#    define NAME_MAX	255
+#  endif
 #endif
 
 struct HCDirEntry {
-	char d_name[MAXNAMLEN + 1];
+	char d_name[NAME_MAX + 1];
 };
 
 int hc_connect(struct HostConf *hc, int readonly);

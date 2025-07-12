@@ -511,7 +511,7 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
 
 	if ((sysden = readdir(dir)) == NULL)
 	    return (NULL);
-	strlcpy(denbuf.d_name, sysden->d_name, MAXNAMLEN + 1);
+	strlcpy(denbuf.d_name, sysden->d_name, sizeof(denbuf.d_name));
 	return (&denbuf);
     }
 
@@ -531,7 +531,7 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
 	den->d_name[0] = 0;
 	FOR_EACH_ITEM(item, trans, head) {
 	    if (item->leafid == LC_PATH1)
-		strlcpy(den->d_name, HCC_STRING(item), MAXNAMLEN + 1);
+		strlcpy(den->d_name, HCC_STRING(item), sizeof(den->d_name));
 	}
 	return (den->d_name[0] ? den : NULL);
     }
@@ -543,7 +543,7 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
     bzero(*statpp, sizeof(struct stat));
     while ((item = hcc_nextchaineditem(hc, head)) != NULL) {
 	if (item->leafid == LC_PATH1) {  /* this must be the last item */
-	    strlcpy(denbuf.d_name, HCC_STRING(item), MAXNAMLEN + 1);
+	    strlcpy(denbuf.d_name, HCC_STRING(item), sizeof(denbuf.d_name));
 	    break;
 	} else {
 	    stat_ok = 1;
