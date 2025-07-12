@@ -2005,10 +2005,12 @@ getmygroups(gid_t **gidlist)
 {
     int count;
 
-    if ((count = getgroups(0, *gidlist)) > 0) {
+    if ((count = getgroups(0, NULL)) > 0) {
 	if ((*gidlist = malloc(count * sizeof(gid_t))) != NULL) {
-	    if ((count = getgroups(count, *gidlist)) <= 0)
+	    if ((count = getgroups(count, *gidlist)) <= 0) {
 		free(*gidlist);
+		count = -1;
+	    }
 	}
 	else
 	    count = -1;
