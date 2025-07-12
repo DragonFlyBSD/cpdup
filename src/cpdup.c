@@ -349,8 +349,11 @@ main(int ac, char **av)
 
     if (dst) {
 	DstRootPrivs = (hc_geteuid(&DstHost) == 0);
-	if (!DstRootPrivs)
+	if (!DstRootPrivs) {
 	    GroupCount = hc_getgroups(&DstHost, &GroupList);
+	    if (GroupCount < 0)
+		fatal("Unable to get user's groups");
+	}
     }
 #if 0
     /* XXXX DEBUG */
