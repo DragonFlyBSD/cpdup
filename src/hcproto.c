@@ -2000,23 +2000,45 @@ rc_geteuid(hctransaction_t trans, struct HCHead *head __unused)
     return (0);
 }
 
+/*
+ * NOTE:
+ * The POSIX spec (2024 edition) says "The getgroups() function shall fill in
+ * the array grouplist with the current supplementary group IDs of the calling
+ * process. It is implementation-defined whether getgroups() also returns the
+ * effective group ID in the grouplist array."  So in theory getgroups() may
+ * return zero for a user that has no supplementary group.  Nevertheless, I
+ * have tested that getgroups() returns at least one (i.e., including the
+ * primary group ID) on DragonFly, Linux, and Illumos (SmartOS).
+ *
+ * Return -1 if failed;
+ * Return 0 if get no group, with gidlist set to NULL;
+ * Return >0 if get groups, with gidlist allocated to contain the group list.
+ */
 static int
 getmygroups(gid_t **gidlist)
 {
     int count;
+    gid_t *list;
 
-    if ((count = getgroups(0, NULL)) > 0) {
-	if ((*gidlist = malloc(count * sizeof(gid_t))) != NULL) {
-	    if ((count = getgroups(count, *gidlist)) <= 0) {
-		free(*gidlist);
+    if ((count = getgroups(0, NULL)) < 0)
+	return (-1);
+
+    if (count == 0) {
+	*gidlist = NULL;
+    } else {
+	list = malloc(count * sizeof(gid_t));
+	if (list != NULL) {
+	    if ((count = getgroups(count, list)) > 0) {
+		*gidlist = list;
+	    } else {
+		free(list);
 		count = -1;
 	    }
-	}
-	else
+	} else {
 	    count = -1;
+	}
     }
-    else
-	*gidlist = NULL;
+
     return (count);
 }
 
@@ -2027,45 +2049,49 @@ hc_getgroups(struct HostConf *hc, gid_t **gidlist)
     hctransaction_t trans;
     struct HCHead *head;
     struct HCLeaf *item;
+    gid_t *list;
 
     if (hc == NULL || hc->host == NULL)
 	return (getmygroups(gidlist));
 
-    i = 0;
-    count = 0;
-    *gidlist = NULL;
-
     if (hc->version < 3) {
-	fprintf(stderr, "WARNING: Remote client uses old protocol version\n");
+	fprintf(stderr, "WARNING: Remote client uses old protocol: "
+		"version=%d\n", hc->version);
 	return (-1);
     }
 
     trans = hcc_start_command(hc, HC_GETGROUPS);
     if ((head = hcc_finish_command(trans)) == NULL || head->error)
-	return(-1);
+	return (-1);
+
+    i = 0;
+    count = 0;
+    list = NULL;
+
     FOR_EACH_ITEM(item, trans, head) {
-	switch(item->leafid) {
+	switch (item->leafid) {
 	case LC_COUNT:
 	    count = HCC_INT32(item);
-	    if (*gidlist != NULL) { /* protocol error */
-		free(*gidlist);
-		*gidlist = NULL;
+	    if (list != NULL) { /* protocol error */
+		free(list);
 		return (-1);
 	    }
-	    if ((*gidlist = malloc(count * sizeof(gid_t))) == NULL)
+	    if (count == 0)
+		break;
+	    if ((list = malloc(count * sizeof(gid_t))) == NULL)
 		return (-1);
 	    break;
 	case LC_GID:
-	    if (*gidlist == NULL || i >= count) { /* protocol error */
-		if (*gidlist != NULL)
-		    free(*gidlist);
-		*gidlist = NULL;
+	    if (list == NULL || i >= count) { /* protocol error */
+		if (list != NULL)
+		    free(list);
 		return (-1);
 	    }
-	    (*gidlist)[i++] = HCC_INT32(item);
+	    list[i++] = HCC_INT32(item);
 	    break;
 	}
     }
+    *gidlist = list;
     return (count);
 }
 
@@ -2077,10 +2103,13 @@ rc_getgroups(hctransaction_t trans, struct HCHead *head __unused)
 
     if ((count = getmygroups(&gidlist)) < 0)
 	return (-1);
+
     hcc_leaf_int32(trans, LC_COUNT, count);
-    for (i = 0; i < count; i++)
-	hcc_leaf_int32(trans, LC_GID, gidlist[i]);
-    if (gidlist != NULL)
+    if (count > 0) {
+	for (i = 0; i < count; i++)
+	    hcc_leaf_int32(trans, LC_GID, gidlist[i]);
 	free(gidlist);
+    }
+
     return (0);
 }
