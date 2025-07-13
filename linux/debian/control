@@ -3,7 +3,6 @@ Priority: optional
 Maintainer: Aaron LI <aly@aaronly.me>
 Build-Depends:
  debhelper-compat (= 13),
- libbsd-dev,
  libssl-dev,
  make,
  pkgconf | pkg-config

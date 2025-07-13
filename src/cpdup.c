@@ -363,7 +363,7 @@ main(int ac, char **av)
 	fprintf(stderr, "Group[%d] == %d\n", i, GroupList[i]);
 #endif
 
-    bzero(&info, sizeof(info));
+    memset(&info, 0, sizeof(info));
     if (dst) {
 	DstBaseLen = strlen(dst);
 	info.spath = src;
@@ -564,7 +564,7 @@ hltadd(struct stat *stp, const char *path)
     new->ino = stp->st_ino;
     new->dino = (ino_t)-1;
     new->refs = 1;
-    bcopy(path, new->name, plen + 1);
+    memcpy(new->name, path, plen + 1);
     new->nlinked = 1;
     new->prev = NULL;
     n = stp->st_ino & HLMASK;
@@ -677,7 +677,7 @@ validate_check(const char *spath, const char *dpath)
 		    CountTargetReadBytes += x;
 	    if (x != n)
 		break;
-	    if (bcmp(iobuf1, iobuf2, n) != 0)
+	    if (memcmp(iobuf1, iobuf2, n) != 0)
 		break;
 	}
 	free(iobuf1);
@@ -1054,7 +1054,7 @@ relink:
 		hc_chflags(&DstHost, dpath, stat1->st_flags);
 #endif
 	    if (ForceOpt || mtimecmp(stat1, &st2) != 0) {
-		bzero(tv, sizeof(tv));
+		memset(tv, 0, sizeof(tv));
 		tv[0].tv_sec = stat1->st_mtime;
 		tv[1].tv_sec = stat1->st_mtime;
 #if defined(st_mtime)  /* A macro, so very likely on modern POSIX */
@@ -1164,7 +1164,7 @@ relink:
 		if (n == 0) {
 		    struct timeval tv[2];
 
-		    bzero(tv, sizeof(tv));
+		    memset(tv, 0, sizeof(tv));
 		    tv[0].tv_sec = stat1->st_mtime;
 		    tv[1].tv_sec = stat1->st_mtime;
 #if defined(st_mtime)
@@ -1254,12 +1254,12 @@ skip_copy:
 		n2 = -1;
 	}
 	if (n1 >= 0) {
-	    if (ForceOpt || n1 != n2 || bcmp(link1, link2, n1) != 0 ||
+	    if (ForceOpt || n1 != n2 || memcmp(link1, link2, n1) != 0 ||
 		(st2Valid && symlink_mfo_test(&DstHost, stat1, &st2))
 	    ) {
 		struct timeval tv[2];
 
-		bzero(tv, sizeof(tv));
+		memset(tv, 0, sizeof(tv));
 		tv[0].tv_sec = stat1->st_mtime;
 		tv[1].tv_sec = stat1->st_mtime;
 #if defined(st_mtime)
@@ -1433,7 +1433,7 @@ ScanDir(List *list, struct HostConf *host, const char *path,
 		    }
 		    bufused = strlen(next);
 		    if (bufused)
-			bcopy(next, buf, bufused);
+			memcpy(buf, next, bufused);
 		}
 		if (bufused) {
 		    /* last line has no trailing newline */
@@ -1572,7 +1572,7 @@ RemoveRecur(const char *dpath, dev_t devNo, struct stat *dstat)
 static void
 InitList(List *list)
 {
-    bzero(list, sizeof(List));
+    memset(list, 0, sizeof(List));
     list->li_Node.no_Next = &list->li_Node;
 }
 

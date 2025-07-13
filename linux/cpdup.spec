@@ -7,8 +7,8 @@ License:	BSD
 URL:		https://github.com/DragonFlyBSD/cpdup
 
 BuildRequires:	make, gcc, binutils
-BuildRequires:	pkgconfig, libbsd-devel, openssl-devel
-Requires:	libbsd, openssl
+BuildRequires:	pkgconfig, openssl-devel
+Requires:	openssl
 
 %description
 The "cpdup" utility makes an exact mirror copy of the source in the

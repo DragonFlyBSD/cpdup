@@ -7,7 +7,7 @@ pkgdesc="Filesystem mirroring utility from DragonFly BSD"
 url="https://github.com/DragonFlyBSD/cpdup"
 license=('BSD')
 arch=('i686' 'x86_64')
-depends=('libbsd' 'openssl')
+depends=('openssl')
 makedepends=('pkg-config')
 
 build() {

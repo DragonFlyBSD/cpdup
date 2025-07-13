@@ -154,7 +154,7 @@ md5_lookup(const char *spath)
 	if ((node = malloc(sizeof(MD5Node))) == NULL)
 	    fatal("out of memory");
 
-	bzero(node, sizeof(MD5Node));
+	memset(node, 0, sizeof(MD5Node));
 	node->md_Name = strdup(sfile);
 	node->md_Next = MD5Base;
 	MD5Base = node;
@@ -183,7 +183,7 @@ md5_update(const char *spath)
 	r = 0;
 	if (strcmp(scode, node->md_Code) != 0) {
 	    r = 1;
-	    bcopy(scode, node->md_Code, sizeof(scode));
+	    memcpy(node->md_Code, scode, sizeof(scode));
 	    MD5SCacheDirty = 1;
 	}
     } else {
@@ -222,7 +222,7 @@ md5_check(const char *spath, const char *dpath)
 	     */
 	    if (md5_file(spath, scode, 0 /* is_target */) == 0) {
 		if (strcmp(node->md_Code, scode) != 0) {
-		    bcopy(scode, node->md_Code, sizeof(scode));
+		    memcpy(node->md_Code, scode, sizeof(scode));
 		    MD5SCacheDirty = 1;
 		    if (strcmp(node->md_Code, dcode) == 0)
 			r = 0;

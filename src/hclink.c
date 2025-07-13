@@ -117,9 +117,9 @@ hcc_slave(int fdin, int fdout, struct HCDesc *descs, int count)
     int i;
     int r;
 
-    bzero(&hcslave, sizeof(hcslave));
-    bzero(&trans, sizeof(trans));
-    bzero(dispatch, sizeof(dispatch));
+    memset(&hcslave, 0, sizeof(hcslave));
+    memset(&trans, 0, sizeof(trans));
+    memset(dispatch, 0, sizeof(dispatch));
     for (i = 0; i < count; ++i) {
 	struct HCDesc *desc = &descs[i];
 	assert(desc->cmd >= 0 && desc->cmd < 256);
@@ -212,7 +212,7 @@ hcc_read_command(struct HostConf *hc, hctransaction_t trans)
     assert(tmp.bytes >= (int)sizeof(tmp) && tmp.bytes < HC_BUFSIZE);
 
     trans->swap = need_swap;
-    bcopy(&tmp, trans->rbuf, n);
+    memcpy(trans->rbuf, &tmp, n);
     aligned_bytes = HCC_ALIGN(tmp.bytes);
 
     while (n < aligned_bytes) {
@@ -358,7 +358,7 @@ hcc_leaf_string(hctransaction_t trans, int16_t leafid, const char *str)
     item->leafid = leafid;
     item->reserved = 0;
     item->bytes = sizeof(*item) + bytes;
-    bcopy(str, item + 1, bytes);
+    memcpy(item + 1, str, bytes);
     trans->windex = HCC_ALIGN(trans->windex + item->bytes);
 }
 
@@ -372,7 +372,7 @@ hcc_leaf_data(hctransaction_t trans, int16_t leafid, const void *ptr, int bytes)
     item->leafid = leafid;
     item->reserved = 0;
     item->bytes = sizeof(*item) + bytes;
-    bcopy(ptr, item + 1, bytes);
+    memcpy(item + 1, ptr, bytes);
     trans->windex = HCC_ALIGN(trans->windex + item->bytes);
 }
 

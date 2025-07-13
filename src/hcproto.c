@@ -171,7 +171,7 @@ hc_hello(struct HostConf *hc)
     char hostbuf[256];
     int error;
 
-    bzero(hostbuf, sizeof(hostbuf));
+    memset(hostbuf, 0, sizeof(hostbuf));
     if (gethostname(hostbuf, sizeof(hostbuf) - 1) < 0)
 	return(-1);
     if (hostbuf[0] == 0)
@@ -232,7 +232,7 @@ rc_hello(hctransaction_t trans, struct HCHead *head)
 	    UseCpFile = strdup(HCC_STRING(item));
     }
 
-    bzero(hostbuf, sizeof(hostbuf));
+    memset(hostbuf, 0, sizeof(hostbuf));
     if (gethostname(hostbuf, sizeof(hostbuf) - 1) < 0)
 	return(-1);
     if (hostbuf[0] == 0)
@@ -287,7 +287,7 @@ hc_decode_stat(hctransaction_t trans, struct stat *st, struct HCHead *head)
 {
     struct HCLeaf *item;
 
-    bzero(st, sizeof(*st));
+    memset(st, 0, sizeof(*st));
     FOR_EACH_ITEM(item, trans, head)
 	hc_decode_stat_item(st, item);
     return(0);
@@ -511,7 +511,8 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
 
 	if ((sysden = readdir(dir)) == NULL)
 	    return (NULL);
-	strlcpy(denbuf.d_name, sysden->d_name, sizeof(denbuf.d_name));
+	strncpy(denbuf.d_name, sysden->d_name, sizeof(denbuf.d_name) - 1);
+	denbuf.d_name[sizeof(denbuf.d_name) - 1] = '\0';
 	return (&denbuf);
     }
 
@@ -530,8 +531,10 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
 	    return (NULL);	/* XXX errno */
 	den->d_name[0] = 0;
 	FOR_EACH_ITEM(item, trans, head) {
-	    if (item->leafid == LC_PATH1)
-		strlcpy(den->d_name, HCC_STRING(item), sizeof(den->d_name));
+	    if (item->leafid == LC_PATH1) {
+		strncpy(den->d_name, HCC_STRING(item), sizeof(den->d_name) - 1);
+		den->d_name[sizeof(den->d_name) - 1] = '\0';
+	    }
 	}
 	return (den->d_name[0] ? den : NULL);
     }
@@ -540,10 +543,11 @@ hc_readdir(struct HostConf *hc, DIR *dir, struct stat **statpp)
     denbuf.d_name[0] = 0;
     head = (void *)dir;
     *statpp = malloc(sizeof(struct stat));
-    bzero(*statpp, sizeof(struct stat));
+    memset(*statpp, 0, sizeof(struct stat));
     while ((item = hcc_nextchaineditem(hc, head)) != NULL) {
 	if (item->leafid == LC_PATH1) {  /* this must be the last item */
-	    strlcpy(denbuf.d_name, HCC_STRING(item), sizeof(denbuf.d_name));
+	    strncpy(denbuf.d_name, HCC_STRING(item), sizeof(denbuf.d_name) - 1);
+	    denbuf.d_name[sizeof(denbuf.d_name) - 1] = '\0';
 	    break;
 	} else {
 	    stat_ok = 1;
@@ -917,7 +921,7 @@ hc_read(struct HostConf *hc, int fd, void *buf, size_t bytes)
 	    }
 	    else
 		head->magic = 0;  /* all bytes used up */
-	    bcopy((char *)HCC_BINARYDATA(item) + offset, buf, x);
+	    memcpy(buf, (char *)HCC_BINARYDATA(item) + offset, x);
 	    buf = (char *)buf + x;
 	    bytes -= (size_t)x;
 	    r += x;
@@ -943,7 +947,7 @@ hc_read(struct HostConf *hc, int fd, void *buf, size_t bytes)
 		    x = item->bytes - sizeof(*item);
 		    if (x > (int)bytes)
 			x = (int)bytes;
-		    bcopy(HCC_BINARYDATA(item), buf, x);
+		    memcpy(buf, HCC_BINARYDATA(item), x);
 		    buf = (char *)buf + x;
 		    bytes -= (size_t)x;
 		    r += x;
@@ -1695,7 +1699,7 @@ hc_readlink(struct HostConf *hc, const char *path, char *buf, int bufsiz)
 		r = 0;
 	    if (r > bufsiz)
 		r = bufsiz;
-	    bcopy(HCC_BINARYDATA(item), buf, r);
+	    memcpy(buf, HCC_BINARYDATA(item), r);
 	}
     }
     return(r);
@@ -1931,7 +1935,7 @@ rc_utimes(hctransaction_t trans, struct HCHead *head)
     struct timeval times[2];
     const char *path;
 
-    bzero(times, sizeof(times));
+    memset(times, 0, sizeof(times));
     path = NULL;
 
     FOR_EACH_ITEM(item, trans, head) {

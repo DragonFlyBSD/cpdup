@@ -40,14 +40,13 @@ Installation
     * `make` (GNU make)
     * `gcc`
     * `pkg-config`
-    * `libbsd-dev` (Required only on Linux)
     * `libssl-dev` (OpenSSL >= 1.0.2 or LibreSSL)
 
-    Arch Linux: `pacman -S pkgconf libbsd openssl`
+    Arch Linux: `pacman -S pkgconf openssl`
 
-    CentOS: `yum install pkgconfig libbsd-devel openssl-devel`
+    CentOS: `yum install pkgconfig openssl-devel`
 
-    Debian: `apt install pkg-config libbsd-dev libssl-dev`
+    Debian: `apt install pkg-config libssl-dev`
 
     DragonFly BSD / FreeBSD: `pkg install gmake pkgconf libressl`
 

@@ -20,8 +20,6 @@ ifeq ($(OS),FreeBSD)
 CFLAGS+=	-D_ST_FLAGS_PRESENT_
 else ifeq ($(OS),Linux)
 CFLAGS+=	-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS+=	$(shell pkg-config --cflags libbsd-overlay)
-LIBS+=		$(shell pkg-config --libs   libbsd-overlay)
 endif
 
 PREFIX?=	/usr/local
