@@ -155,5 +155,4 @@ int hc_lutimes(struct HostConf *hc, const char *path, const struct timeval *time
 uid_t hc_geteuid(struct HostConf *hc);
 int hc_getgroups(struct HostConf *hc, gid_t **gidlist);
 
-#endif
-
+#endif /* !_HCPROTO_H_ */

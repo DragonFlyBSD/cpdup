@@ -58,15 +58,12 @@ md5_flush(void)
     MD5Node *node;
     FILE *fo;
 
-    if (MD5SCacheDirty && MD5SCache && !NotForRealOpt) {
+    if (MD5SCacheDirty && MD5SCache != NULL && !NotForRealOpt) {
 	if ((fo = fopen(MD5SCache, "w")) != NULL) {
 	    for (node = MD5Base; node; node = node->md_Next) {
 		if (node->md_Accessed && node->md_Code[0] != '\0') {
-		    fprintf(fo, "%s %zu %s\n",
-			node->md_Code,
-			strlen(node->md_Name),
-			node->md_Name
-		    );
+		    fprintf(fo, "%s %zu %s\n", node->md_Code,
+			    strlen(node->md_Name), node->md_Name);
 		}
 	    }
 	    fclose(fo);
@@ -78,7 +75,7 @@ md5_flush(void)
 
     MD5SCacheDirty = 0;
 
-    if (MD5SCache) {
+    if (MD5SCache != NULL) {
 	while ((node = MD5Base) != NULL) {
 	    MD5Base = node->md_Next;
 
@@ -99,9 +96,8 @@ md5_cache(const char *spath, int sdirlen)
     /*
      * Already cached
      */
-
     if (
-	MD5SCache &&
+	MD5SCache != NULL &&
 	sdirlen == MD5SCacheDirLen &&
 	strncmp(spath, MD5SCache, sdirlen) == 0
     ) {

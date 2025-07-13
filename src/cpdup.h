@@ -144,4 +144,4 @@ void debug_free(void *ptr);
 
 #define malloc(bytes)	debug_malloc(bytes, __FILE__, __LINE__)
 #define free(ptr)	debug_free(ptr)
-#endif
+#endif /* DEBUG_MALLOC */

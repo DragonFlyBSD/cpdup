@@ -507,14 +507,14 @@ hcc_nextitem(hctransaction_t trans, struct HCHead *head, struct HCLeaf *item)
 	item->leafid = hc_bswap16(item->leafid);
 	item->bytes  = hc_bswap32(item->bytes);
 	switch (item->leafid & LCF_TYPEMASK) {
-	    case LCF_INT32:
-		i32ptr = (void *)(item + 1);
-		*i32ptr = hc_bswap32(*i32ptr);
-		break;
-	    case LCF_INT64:
-		i64ptr = (void *)(item + 1);
-		*i64ptr = hc_bswap64(*i64ptr);
-		break;
+	case LCF_INT32:
+	    i32ptr = (void *)(item + 1);
+	    *i32ptr = hc_bswap32(*i32ptr);
+	    break;
+	case LCF_INT64:
+	    i64ptr = (void *)(item + 1);
+	    *i64ptr = hc_bswap64(*i64ptr);
+	    break;
 	}
     }
     assert(head->bytes >= offset + (int)sizeof(*item));
@@ -565,7 +565,7 @@ hcc_debug_dump(hctransaction_t trans, struct HCHead *head)
     fprintf(stderr, "\n");
     FOR_EACH_ITEM(item, trans, head) {
 	fprintf(stderr, "    ITEM %04x DATA ", item->leafid);
-	switch(item->leafid & LCF_TYPEMASK) {
+	switch (item->leafid & LCF_TYPEMASK) {
 	case LCF_INT32:
 	    fprintf(stderr, "int32 %d\n", HCC_INT32(item));
 	    break;

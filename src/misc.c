@@ -149,7 +149,7 @@ debug_free(void *ptr)
 	}
 }
 
-#endif
+#endif /* DEBUG_MALLOC */
 
 void
 fatal(const char *ctl, ...)

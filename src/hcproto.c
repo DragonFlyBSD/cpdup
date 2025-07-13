@@ -634,8 +634,8 @@ rc_closedir(hctransaction_t trans, struct HCHead *head)
 	if (item->leafid == LC_DESCRIPTOR) {
 	    dir = hcc_get_descriptor(trans->hc, HCC_INT32(item), HC_DESC_DIR);
 	    if (dir != NULL) {
-		    hcc_set_descriptor(trans->hc, HCC_INT32(item),
-				       NULL, HC_DESC_DIR);
+		hcc_set_descriptor(trans->hc, HCC_INT32(item),
+				   NULL, HC_DESC_DIR);
 	    }
 	}
     }
@@ -1966,9 +1966,9 @@ rc_utimes(hctransaction_t trans, struct HCHead *head)
     if (path == NULL)
 	return(-2);
     if (head->cmd == HC_LUTIMES)
-	    return(lutimes(path, times));
+	return(lutimes(path, times));
     else
-	    return(utimes(path, times));
+	return(utimes(path, times));
 }
 
 uid_t

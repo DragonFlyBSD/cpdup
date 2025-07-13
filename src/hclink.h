@@ -106,9 +106,9 @@ struct HCDesc {
 #define HCC_INT64(item)		(*(int64_t *)((item) + 1))
 #define HCC_BINARYDATA(item)	((void *)((item) + 1))
 
-#define FOR_EACH_ITEM(item, trans, head)	\
-		for (item = hcc_firstitem(trans, head); item; \
-		     item = hcc_nextitem(trans, head, item))
+#define FOR_EACH_ITEM(item, trans, head)		\
+	for (item = hcc_firstitem(trans, head); item;	\
+	     item = hcc_nextitem(trans, head, item))
 
 /*
  * Prototypes
@@ -136,5 +136,4 @@ struct HCLeaf *hcc_currentchaineditem(struct HostConf *hc, struct HCHead *head);
 
 void hcc_debug_dump(struct HCHead *head);
 
-#endif
-
+#endif /* !_HCLINK_H_ */
