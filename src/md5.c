@@ -44,8 +44,8 @@ typedef struct MD5Node {
 
 static MD5Node *md5_lookup(const char *spath);
 static void md5_cache(const char *spath, int sdirlen);
+static void md5_load(FILE *fi);
 static int md5_file(const char *filename, char *buf, int is_target);
-static int fextract(FILE *fi, int *pc, char *buf, size_t len);
 
 static char *MD5SCache;		/* cache source directory name */
 static MD5Node *MD5Base;
@@ -108,99 +108,16 @@ md5_cache(const char *spath, int sdirlen)
     /*
      * Different cache, flush old cache
      */
-
     if (MD5SCache != NULL)
 	md5_flush();
 
     /*
-     * Create new cache
+     * Create new cache and load data if exists
      */
-
     MD5SCacheDirLen = sdirlen;
     MD5SCache = mprintf("%*.*s%s", sdirlen, sdirlen, spath, MD5CacheFile);
-
-    /*
-     * Line format: "<code> <name_len> <name>"
-     * - code: hex-encoded digest
-     * - name_len: 10-based integer indicating the length of the file name
-     * - name: the file name (may contain special characters)
-     * Example: "359d5608935488c8d0af7eb2a350e2f8 7 cpdup.c"
-     */
     if ((fi = fopen(MD5SCache, "r")) != NULL) {
-	MD5Node **pnode = &MD5Base;
-	MD5Node *node;
-	int c, n, nlen;
-	char nbuf[sizeof("2147483647")];
-	char *endp;
-
-	while ((c = fgetc(fi)) != EOF) {
-	    node = malloc(sizeof(MD5Node));
-	    if (node == NULL)
-		fatal("out of memory");
-
-	    bzero(node, sizeof(MD5Node));
-
-	    if (fextract(fi, &c, node->md_Code, sizeof(node->md_Code)) != 0) {
-		logerr("Error parsing MD5 Cache (%s): invalid digest code\n",
-		       MD5SCache);
-		goto skip;
-	    }
-
-	    c = fgetc(fi);
-	    if (fextract(fi, &c, nbuf, sizeof(nbuf)) != 0) {
-		logerr("Error parsing MD5 Cache (%s): invalid length\n",
-		       MD5SCache);
-		goto skip;
-	    }
-	    nlen = strtol(nbuf, &endp, 10);
-	    if (*endp != '\0' || nlen == 0) {
-		logerr("Error parsing MD5 Cache (%s): invalid length\n",
-		       MD5SCache);
-		goto skip;
-	    }
-
-	    if ((node->md_Name = malloc(nlen + 1)) == NULL)
-		fatal("out of memory");
-	    for (n = 0; n < nlen; n++) {
-		c = fgetc(fi);
-		node->md_Name[n] = c;
-		if (c == EOF) {
-		    logerr("Error parsing MD5 Cache (%s): invalid filename\n",
-			   MD5SCache);
-		    goto skip;
-		}
-	    }
-	    node->md_Name[n] = '\0';
-
-	    c = fgetc(fi);
-	    if (c != '\n' && c != EOF) {
-		logerr("Error parsing MD5 Cache (%s): trailing garbage\n",
-		       MD5SCache);
-		goto skip;
-	    }
-
-	    node->md_Accessed = 1;
-	    *pnode = node;
-	    pnode = &node->md_Next;
-
-	    if (SummaryOpt) {
-		CountSourceReadBytes += strlen(node->md_Code) + strlen(nbuf) +
-		    nlen + 1;
-	    }
-	    if (c == EOF)
-		break;
-	    continue;
-
-	skip:
-	    if (node->md_Name != NULL)
-		free(node->md_Name);
-	    free(node);
-	    while (c != EOF && c != '\n')
-		c = fgetc(fi);
-	    if (c == EOF)
-		break;
-	}
-
+	md5_load(fi);
 	fclose(fi);
     }
 }
@@ -399,19 +316,16 @@ err:
 }
 
 static int
-fextract(FILE *fi, int *pc, char *buf, size_t len)
+get_field(FILE *fi, int c, char *buf, size_t len)
 {
     size_t n;
-    int c;
 
     n = 0;
-    c = *pc;
 
     while (c != EOF) {
 	if (c == ' ') {
-	    *pc = c;
 	    buf[n] = '\0';
-	    return (0);
+	    return (c);
 	}
 
 	buf[n++] = c;
@@ -421,6 +335,93 @@ fextract(FILE *fi, int *pc, char *buf, size_t len)
 	c = fgetc(fi);
     }
 
-    *pc = c;
-    return (-1);
+    return (c);
+}
+
+static void
+md5_load(FILE *fi)
+{
+    MD5Node **pnode = &MD5Base;
+    MD5Node *node;
+    int c, n, nlen;
+    char nbuf[sizeof("2147483647")];
+    char *endp;
+
+    /*
+     * Line format: "<code> <name_len> <name>"
+     * - code: hex-encoded digest
+     * - name_len: 10-based integer indicating the length of the file name
+     * - name: the file name (may contain special characters)
+     * Example: "359d5608935488c8d0af7eb2a350e2f8 7 cpdup.c"
+     */
+    c = fgetc(fi);
+    while (c != EOF) {
+	node = malloc(sizeof(MD5Node));
+	if (node == NULL)
+	    fatal("out of memory");
+	memset(node, 0, sizeof(MD5Node));
+
+	c = get_field(fi, c, node->md_Code, sizeof(node->md_Code));
+	if (c != ' ') {
+	    logerr("Error parsing MD5 Cache (%s): invalid digest code (%c)\n",
+		   MD5SCache, c);
+	    goto next;
+	}
+
+	c = fgetc(fi);
+	c = get_field(fi, c, nbuf, sizeof(nbuf));
+	if (c != ' ') {
+	    logerr("Error parsing MD5 Cache (%s): invalid length (%c)\n",
+		   MD5SCache, c);
+	    goto next;
+	}
+	nlen = (int)strtol(nbuf, &endp, 10);
+	if (*endp != '\0' || nlen == 0) {
+	    logerr("Error parsing MD5 Cache (%s): invalid length (%s)\n",
+		   MD5SCache, nbuf);
+	    goto next;
+	}
+
+	if ((node->md_Name = malloc(nlen + 1)) == NULL)
+	    fatal("out of memory");
+	node->md_Name[nlen] = '\0';
+	for (n = 0; n < nlen; n++) {
+	    c = fgetc(fi);
+	    if (c == EOF) {
+		logerr("Error parsing MD5 Cache (%s): invalid filename\n",
+		       MD5SCache);
+		goto next;
+	    }
+	    node->md_Name[n] = c;
+	}
+
+	c = fgetc(fi);
+	if (c != '\n' && c != EOF) {
+	    logerr("Error parsing MD5 Cache (%s): trailing garbage (%c)\n",
+		   MD5SCache, c);
+	    while (c != EOF && c != '\n')
+		c = fgetc(fi);
+	}
+	if (c == '\n')
+	    c = fgetc(fi);
+
+	node->md_Accessed = 1;
+	*pnode = node;
+	pnode = &node->md_Next;
+
+	if (SummaryOpt) {
+	    CountSourceReadBytes += strlen(node->md_Code) + strlen(nbuf) +
+		nlen + 1;
+	}
+	continue;
+
+    next:
+	if (node->md_Name != NULL)
+	    free(node->md_Name);
+	free(node);
+	while (c != EOF && c != '\n')
+	    c = fgetc(fi);
+	if (c == '\n')
+	    c = fgetc(fi);
+    }
 }
