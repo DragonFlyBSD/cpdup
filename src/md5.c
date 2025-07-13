@@ -70,6 +70,9 @@ md5_flush(void)
 		}
 	    }
 	    fclose(fo);
+	} else {
+	    logerr("Error writing MD5 Cache (%s): %s\n",
+		   MD5SCache, strerror(errno));
 	}
     }
 
@@ -119,6 +122,9 @@ md5_cache(const char *spath, int sdirlen)
     if ((fi = fopen(MD5SCache, "r")) != NULL) {
 	md5_load(fi);
 	fclose(fi);
+    } else if (errno != ENOENT) {
+	logerr("Error reading MD5 Cache (%s): %s\n",
+	       MD5SCache, strerror(errno));
     }
 }
 
