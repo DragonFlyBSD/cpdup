@@ -52,6 +52,10 @@
 #include <fnmatch.h>
 #include <assert.h>
 
+#ifndef NOMD5
+#include <openssl/evp.h>
+#endif
+
 #ifdef __linux
 
 /*
@@ -100,8 +104,8 @@ int32_t hc_bswap32(int32_t var);
 int64_t hc_bswap64(int64_t var);
 
 #ifndef NOMD5
-int md5_update(const char *spath);
-int md5_check(const char *spath, const char *dpath);
+int md5_update(const EVP_MD *algo, const char *spath);
+int md5_check(const EVP_MD *algo, const char *spath, const char *dpath);
 void md5_flush(void);
 #endif
 

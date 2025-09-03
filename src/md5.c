@@ -33,8 +33,6 @@
 
 #include "cpdup.h"
 
-#include <openssl/evp.h>
-
 typedef struct MD5Node {
     struct MD5Node *md_Next;
     char *md_Name;
@@ -45,7 +43,8 @@ typedef struct MD5Node {
 static MD5Node *md5_lookup(const char *spath);
 static void md5_cache(const char *spath, int sdirlen);
 static void md5_load(FILE *fi);
-static int md5_file(const char *filename, char *buf, int is_target);
+static int md5_file(const EVP_MD *algo, const char *filename, char *buf,
+		     int is_target);
 
 static char *MD5SCache;		/* cache source directory name */
 static MD5Node *MD5Base;
@@ -68,7 +67,7 @@ md5_flush(void)
 	    }
 	    fclose(fo);
 	} else {
-	    logerr("Error writing MD5 Cache (%s): %s\n",
+	    logerr("Error writing checksum cache (%s): %s\n",
 		   MD5SCache, strerror(errno));
 	}
     }
@@ -119,13 +118,13 @@ md5_cache(const char *spath, int sdirlen)
 	md5_load(fi);
 	fclose(fi);
     } else if (errno != ENOENT) {
-	logerr("Error reading MD5 Cache (%s): %s\n",
+	logerr("Error reading checksum cache (%s): %s\n",
 	       MD5SCache, strerror(errno));
     }
 }
 
 /*
- * md5_lookup:	lookup/create md5 entry
+ * md5_lookup:	lookup/create checksum entry
  */
 static MD5Node *
 md5_lookup(const char *spath)
@@ -160,14 +159,14 @@ md5_lookup(const char *spath)
 }
 
 /*
- * md5_update:	force update the source MD5 file.
+ * md5_update: force update the source checksum file.
  *
  *	Return -1 if failed
  *	Return 0  if up-to-date
  *	Return 1  if updated
  */
 int
-md5_update(const char *spath)
+md5_update(const EVP_MD *algo, const char *spath)
 {
     char scode[EVP_MAX_MD_SIZE * 2 + 1];
     int r;
@@ -175,7 +174,7 @@ md5_update(const char *spath)
 
     node = md5_lookup(spath);
 
-    if (md5_file(spath, scode, 0 /* is_target */) == 0) {
+    if (md5_file(algo, spath, scode, 0 /* is_target */) == 0) {
 	r = 0;
 	if (strcmp(scode, node->md_Code) != 0) {
 	    r = 1;
@@ -190,14 +189,14 @@ md5_update(const char *spath)
 }
 
 /*
- * md5_check:	check MD5 against file
+ * md5_check:	check checksum against file
  *
  *	Return -1 if check failed
  *	Return 0  if source and dest files are identical
  *	Return 1  if source and dest files are not identical
  */
 int
-md5_check(const char *spath, const char *dpath)
+md5_check(const EVP_MD *algo, const char *spath, const char *dpath)
 {
     char scode[EVP_MAX_MD_SIZE * 2 + 1];
     char dcode[EVP_MAX_MD_SIZE * 2 + 1];
@@ -207,16 +206,16 @@ md5_check(const char *spath, const char *dpath)
     node = md5_lookup(spath);
 
     /*
-     * The .MD5* file is used as a cache.
+     * The .[checksum]* file is used as a cache.
      */
-    if (md5_file(dpath, dcode, 1 /* is_target */) == 0) {
+    if (md5_file(algo, dpath, dcode, 1 /* is_target */) == 0) {
 	r = 0;
 	if (strcmp(node->md_Code, dcode) != 0) {
 	    r = 1;
 	    /*
 	     * Update the source digest code and recheck.
 	     */
-	    if (md5_file(spath, scode, 0 /* is_target */) == 0) {
+	    if (md5_file(algo, spath, scode, 0 /* is_target */) == 0) {
 		if (strcmp(node->md_Code, scode) != 0) {
 		    memcpy(node->md_Code, scode, sizeof(scode));
 		    MD5SCacheDirty = 1;
@@ -239,7 +238,7 @@ md5_check(const char *spath, const char *dpath)
  *       >= (EVP_MAX_MD_SIZE * 2 + 1).
  */
 static int
-md5_file(const char *filename, char *buf, int is_target)
+md5_file(const EVP_MD *algo, const char *filename, char *buf, int is_target)
 {
     static const char hex[] = "0123456789abcdef";
     unsigned char digest[EVP_MAX_MD_SIZE];
@@ -264,7 +263,7 @@ md5_file(const char *filename, char *buf, int is_target)
 #endif
     if (ctx == NULL)
 	goto err;
-    if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL))
+    if (!EVP_DigestInit_ex(ctx, algo, NULL))
 	goto err;
 
     size = st.st_size;
@@ -365,7 +364,7 @@ md5_load(FILE *fi)
 
 	c = get_field(fi, c, node->md_Code, sizeof(node->md_Code));
 	if (c != ' ') {
-	    logerr("Error parsing MD5 Cache (%s): invalid digest code (%c)\n",
+	    logerr("Error parsing checksum cache (%s): invalid digest code (%c)\n",
 		   MD5SCache, c);
 	    goto next;
 	}
@@ -373,13 +372,13 @@ md5_load(FILE *fi)
 	c = fgetc(fi);
 	c = get_field(fi, c, nbuf, sizeof(nbuf));
 	if (c != ' ') {
-	    logerr("Error parsing MD5 Cache (%s): invalid length (%c)\n",
+	    logerr("Error parsing checksum cache (%s): invalid length (%c)\n",
 		   MD5SCache, c);
 	    goto next;
 	}
 	nlen = (int)strtol(nbuf, &endp, 10);
 	if (*endp != '\0' || nlen == 0) {
-	    logerr("Error parsing MD5 Cache (%s): invalid length (%s)\n",
+	    logerr("Error parsing checksum cache (%s): invalid length (%s)\n",
 		   MD5SCache, nbuf);
 	    goto next;
 	}
@@ -390,7 +389,7 @@ md5_load(FILE *fi)
 	for (n = 0; n < nlen; n++) {
 	    c = fgetc(fi);
 	    if (c == EOF) {
-		logerr("Error parsing MD5 Cache (%s): invalid filename\n",
+		logerr("Error parsing checksum cache (%s): invalid filename\n",
 		       MD5SCache);
 		goto next;
 	    }
@@ -399,7 +398,7 @@ md5_load(FILE *fi)
 
 	c = fgetc(fi);
 	if (c != '\n' && c != EOF) {
-	    logerr("Error parsing MD5 Cache (%s): trailing garbage (%c)\n",
+	    logerr("Error parsing checksum cache (%s): trailing garbage (%c)\n",
 		   MD5SCache, c);
 	    while (c != EOF && c != '\n')
 		c = fgetc(fi);
