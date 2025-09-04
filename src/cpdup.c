@@ -59,7 +59,8 @@
  *	  standard wildcarded ( ? / * style, NOT regex) exclusions.
  *	- tries to play permissions and flags smart in regards to overwriting
  *	  schg files and doing related stuff.
- *	- Can do MD5 consistancy checks
+ *	- Can do checksum consistancy checks with any supported OpenSSL EVP
+ *	  message digest
  *	- Is able to do incremental mirroring/backups via hardlinks from
  *	  the 'previous' version (supplied with -H path).
  */
@@ -67,6 +68,7 @@
 #include "cpdup.h"
 #include "hclink.h"
 #include "hcproto.h"
+#include <ctype.h>
 
 #define HSIZE	8192
 #define HMASK	(HSIZE-1)
@@ -188,10 +190,17 @@ int64_t CountLinkedItems;
 static struct HostConf SrcHost;
 static struct HostConf DstHost;
 
+#ifndef NOMD5
+const EVP_MD *CsumAlgo;
+#endif
+
 int
 main(int ac, char **av)
 {
     int i;
+#ifndef NOMD5
+    int len;
+#endif
     int opt;
     char *src = NULL;
     char *dst = NULL;
@@ -199,12 +208,25 @@ main(int ac, char **av)
     struct timeval start;
     struct copy_info info;
 
+#ifndef NOMD5
+    char *MD5AlgoStr;
+    char *MD5CacheFileStr;
+    const char *CsumAlgoStrArg = NULL;
+    const char *MD5CacheFileArg = NULL;
+#endif
+
     signal(SIGPIPE, SIG_IGN);
 
     gettimeofday(&start, NULL);
     opterr = 0;
-    while ((opt = getopt(ac, av, ":CdF:fH:hIi:j:lM:mnoqRSs:uVvX:x")) != -1) {
+    while ((opt = getopt(ac, av, ":c:CdF:fH:hIi:j:lM:mnoqRSs:uVvX:x")) != -1) {
 	switch (opt) {
+	case 'c':
+	    UseMD5Opt = 1;
+#ifndef NOMD5
+	    CsumAlgoStrArg = optarg;
+#endif
+	    break;
 	case 'C':
 	    CompressOpt = 1;
 	    break;
@@ -241,11 +263,17 @@ main(int ac, char **av)
 	    break;
 	case 'M':
 	    UseMD5Opt = 1;
-	    MD5CacheFile = optarg;
+	    if (strnlen(optarg, PATH_MAX) == PATH_MAX)
+		fatal("Cache file string too long");
+#ifndef NOMD5
+	    MD5CacheFileArg = optarg;
+#endif
 	    break;
 	case 'm':
 	    UseMD5Opt = 1;
-	    MD5CacheFile = ".MD5.CHECKSUMS";
+#ifndef NOMD5
+	    CsumAlgoStrArg = "MD5";
+#endif
 	    break;
 	case 'n':
 	    NotForRealOpt = 1;
@@ -303,6 +331,27 @@ main(int ac, char **av)
     if (ac > 2)
 	fatal("too many arguments");
 
+#ifndef NOMD5
+    if (UseMD5Opt) {
+	if (CsumAlgoStrArg == NULL)
+	    CsumAlgoStrArg = "MD5";
+	CsumAlgo = EVP_get_digestbyname(CsumAlgoStrArg);
+	if (CsumAlgo == NULL)
+	    fatal("Unknown digest algorithm: %s", CsumAlgoStrArg);
+	len = strlen(CsumAlgoStrArg);
+	CsumAlgoStr = malloc(len + 1);
+	for (i = 0; i < len; i++)
+	    CsumAlgoStr[i] = toupper(CsumAlgoStrArg[i]);
+	CsumAlgoStr[i] = '\0';
+	if (MD5CacheFileArg == NULL) {
+	    if (asprintf(&MD5CacheFileStr, ".%s.CHECKSUMS", CsumAlgoStr) < 0)
+		fatal("Memory allocation error\n");
+	} else
+	    MD5CacheFileStr = strdup(MD5CacheFileArg);
+	MD5CacheFile = MD5CacheFileStr;
+    }
+#endif
+
     /*
      * If we are told to go into slave mode, run the HC protocol
      */
@@ -320,7 +369,7 @@ main(int ac, char **av)
 	SrcHost.host = src;
 	src = ptr;
 	if (UseMD5Opt)
-	    fatal("The MD5 options are not currently supported for remote sources");
+	    fatal("The checksum options are not currently supported for remote sources");
 	if (hc_connect(&SrcHost, ReadOnlyOpt) < 0)
 	    exit(1);
     } else {
@@ -339,8 +388,8 @@ main(int ac, char **av)
     }
 
     /*
-     * dst may be NULL only if -m option is specified,
-     * which forces an update of the MD5 checksums
+     * dst may be NULL only if -c checksum or -m option is specified,
+     * which forces an update of the checksums
      */
     if (dst == NULL && UseMD5Opt == 0) {
 	fatal(NULL);
@@ -830,7 +879,7 @@ relink:
 		OwnerMatch(stat1, &st2)
 #ifndef NOMD5
 		&& (UseMD5Opt == 0 || !S_ISREG(stat1->st_mode) ||
-		    (mres = md5_check(spath, dpath)) == 0)
+		    (mres = md5_check(CsumAlgo, spath, dpath)) == 0)
 #endif
 		&& (ValidateOpt == 0 || !S_ISREG(stat1->st_mode) ||
 		    validate_check(spath, dpath) == 0)
@@ -858,7 +907,7 @@ relink:
 		if (VerboseOpt >= 3) {
 #ifndef NOMD5
 		    if (UseMD5Opt) {
-			logstd("%-32s md5-nochange",
+			logstd("%-32s checksum-nochange",
 				(dpath ? dpath : spath));
 		    } else
 #endif
@@ -1063,22 +1112,22 @@ relink:
 	}
     } else if (dpath == NULL) {
 	/*
-	 * If dpath is NULL, we are just updating the MD5
+	 * If dpath is NULL, we are just updating the checksum
 	 */
 #ifndef NOMD5
 	if (UseMD5Opt && S_ISREG(stat1->st_mode)) {
-	    mres = md5_update(spath);
+	    mres = md5_update(CsumAlgo, spath);
 
 	    if (mres < 0) {
-		logerr("%-32s md5-CHECK-FAILED\n", spath);
+		logerr("%-32s checksum-CHECK-FAILED\n", spath);
 	    } else {
 		if (VerboseOpt > 1) {
 		    if (mres > 0)
-			logstd("%-32s md5-update\n", spath);
+			logstd("%-32s checksum-update\n", spath);
 		    else
-			logstd("%-32s md5-ok\n", spath);
+			logstd("%-32s checksum-ok\n", spath);
 		} else if (!QuietOpt && mres > 0) {
-		    logstd("%-32s md5-update\n", spath);
+		    logstd("%-32s checksum-update\n", spath);
 		}
 	    }
 	}
@@ -1099,7 +1148,7 @@ relink:
 	 * Handle check failure message.
 	 */
 	if (mres < 0)
-	    logerr("%-32s md5-CHECK-FAILED\n", (dpath) ? dpath : spath);
+	    logerr("%-32s checksum-CHECK-FAILED\n", (dpath) ? dpath : spath);
 #endif
 
 	/*
